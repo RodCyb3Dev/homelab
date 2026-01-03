@@ -175,6 +175,11 @@ tags = ["private-key", "secret"]
 [rules.allowlist]
 regexes = [
   '''#\s*-----BEGIN''',  # Commented examples
+  '''-----BEGIN RSA XXXXX''',  # Placeholder examples
+  '''#.*-----BEGIN.*PRIVATE KEY''',  # Any commented private key
+]
+paths = [
+  '''config/authelia/configuration\.yml''',  # Allow in authelia config (commented examples)
 ]
 
 [[rules]]
