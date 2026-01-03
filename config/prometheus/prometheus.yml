@@ -141,4 +141,3 @@ scrape_configs:
 #       max_shards: 1
 #       max_samples_per_send: 500
 #       batch_send_deadline: 5s
-
