@@ -294,4 +294,3 @@ pre-deploy: qa-check verify-secrets health ## Run pre-deployment checks
 
 cleanup-old: ## Cleanup old docker-compose directories
 	@bash scripts/cleanup-old-dirs.sh
-

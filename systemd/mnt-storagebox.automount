@@ -1,0 +1,12 @@
+[Unit]
+Description=Hetzner Storage Box WebDAV Automount
+Documentation=https://docs.hetzner.com/storage/storage-box/
+After=network-online.target
+Wants=network-online.target
+
+[Automount]
+Where=/mnt/storagebox
+TimeoutIdleSec=300
+
+[Install]
+WantedBy=multi-user.target

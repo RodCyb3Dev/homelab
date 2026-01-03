@@ -273,19 +273,37 @@ The Storage Box is mounted at `/mnt/storagebox` via WebDAV (HTTPS) and provides 
 - **Protocol**: WebDAV (HTTPS on port 443)
 - **Mount Point**: `/mnt/storagebox`
 - **Credentials**: `/root/.davfs2_secrets`
-- **Auto-mount**: Configured in `/etc/fstab`
+- **Auto-mount**: Systemd service (recommended) or `/etc/fstab`
+
+**Important Note:**
+
+> ⚠️ **Auto-mount on boot may require manual intervention** because davfs2 can prompt for credentials. If the mount fails on boot, manually mount with `sudo mount /mnt/storagebox` or use the provided systemd service for reliable automatic mounting.
 
 **Setup:**
 
 ```bash
+# Setup systemd service for automatic mounting (recommended)
+./scripts/setup-storagebox-systemd.sh
+
+# Or manually:
+sudo cp systemd/storagebox-mount.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable storagebox-mount.service
+sudo systemctl start storagebox-mount.service
+
 # Manual mount (if needed)
 sudo mount /mnt/storagebox
+# Or
+sudo systemctl start storagebox-mount.service
 
 # Check mount status
 df -h | grep storagebox
 
 # Verify directories
 ls -lah /mnt/storagebox/
+
+# Check service status
+sudo systemctl status storagebox-mount.service
 ```
 
 See [Storage Box Setup Guide](docs/STORAGE_BOX_SETUP.md) for detailed configuration.
