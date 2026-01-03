@@ -35,6 +35,9 @@ regexes = [
   '''\$\{[A-Z_]+\}''',
   '''\$[A-Z_]+''',
   
+  # Docker secret file paths (not actual secrets)
+  '''file:///run/secrets/[a-z_]+''',
+  
   # Base64 placeholders
   '''(AKIA|ghp_|ghp_example)example''',
 ]
@@ -106,6 +109,7 @@ regexes = [
   '''\$\{[A-Z_]+\}''',
   '''op://''',
   '''\[use 'op item get''',
+  '''file:///run/secrets/''',
 ]
 
 [[rules]]

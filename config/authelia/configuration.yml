@@ -316,9 +316,9 @@ ntp:
 #   oidc:
 #     hmac_secret: 'your_oidc_hmac_secret'
 #     issuer_private_key: |
-#       -----BEGIN RSA PRIVATE KEY-----
+#       -----BEGIN RSA XXXXX-----
 #       ...
-#       -----END RSA PRIVATE KEY-----
+#       -----END RSA XXXXX-----
 #     access_token_lifespan: '1h'
 #     authorize_code_lifespan: '1m'
 #     id_token_lifespan: '1h'
@@ -339,4 +339,3 @@ ntp:
 #           - 'groups'
 #         userinfo_signed_response_alg: 'none'
 #         token_endpoint_auth_method: 'client_secret_basic'
-

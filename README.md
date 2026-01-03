@@ -247,9 +247,111 @@ Generate bouncer API key:
 docker exec crowdsec cscli bouncers add traefik-bouncer
 ```
 
+### Hetzner Storage Box
+
+The Storage Box is mounted at `/mnt/storagebox` via WebDAV (HTTPS) and provides network storage for media files and backups.
+
+**Directory Structure:**
+
+```
+/mnt/storagebox/
+├── movies/          # Jellyfin - Movies
+├── tv-shows/        # Jellyfin - TV Shows
+├── photos/          # Jellyfin - Photos
+├── books/           # Jellyfin - Books/eBooks
+├── home-videos/     # Jellyfin - Home Videos
+├── music/           # Navidrome - Music streaming
+├── audiobooks/      # Audiobookshelf - Audiobooks
+├── podcasts/        # Audiobookshelf - Podcasts
+├── downloads/       # Downloads (optional)
+├── media/           # Other media (optional)
+└── backups/         # Automated backups
+```
+
+**Mount Configuration:**
+
+- **Protocol**: WebDAV (HTTPS on port 443)
+- **Mount Point**: `/mnt/storagebox`
+- **Credentials**: `/root/.davfs2_secrets`
+- **Auto-mount**: Configured in `/etc/fstab`
+
+**Setup:**
+
+```bash
+# Manual mount (if needed)
+sudo mount /mnt/storagebox
+
+# Check mount status
+df -h | grep storagebox
+
+# Verify directories
+ls -lah /mnt/storagebox/
+```
+
+See [Storage Box Setup Guide](docs/STORAGE_BOX_SETUP.md) for detailed configuration.
+
 ## 🚢 Deployment
 
-### Manual Deployment
+### Prerequisites
+
+- **Server**: Hetzner Cloud (3 vCPU, 4GB RAM, Ubuntu 22.04+)
+- **Domain**: Configured with Cloudflare DNS
+- **Accounts**: Cloudflare, Tailscale, CrowdSec, GitHub
+- **1Password**: CLI installed with `homelab-env` vault
+
+### Pre-Deployment Checklist
+
+1. **Secrets Setup:**
+
+   ```bash
+   # Verify 1Password secrets
+   ./scripts/verify-secrets.sh
+
+   # Setup Git hooks
+   make setup-git-hooks
+   ```
+
+2. **Server Preparation:**
+
+   ```bash
+   # SSH into server
+   ssh root@95.216.176.147
+
+   # Install Docker
+   curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+
+   # Configure firewall
+   ufw allow 22,80,443/tcp && ufw enable
+   ```
+
+3. **Cloudflare API Token:**
+   - Create token at https://dash.cloudflare.com/profile/api-tokens
+   - Permissions: Zone DNS Edit, Zone Read
+   - Save to: `config/traefik/cf_api_token.txt` (chmod 600)
+
+### Deployment Methods
+
+#### Option 1: Kamal (Zero-Downtime) - Recommended
+
+```bash
+# Setup Kamal
+make kamal-setup
+
+# Deploy
+make kamal-deploy
+
+# Rollback if needed
+make kamal-rollback
+```
+
+**Benefits:**
+
+- Zero-downtime rolling updates
+- Only Docker images deployed (no file transfers)
+- Automatic health checks
+- Instant rollback support
+
+#### Option 2: Docker Compose (Manual)
 
 ```bash
 # Start all services
@@ -265,27 +367,28 @@ make health
 make restart
 ```
 
-### Automated Deployment (GitHub Actions)
+#### Option 3: GitHub Actions (CI/CD)
 
 1. **Setup GitHub Secrets:**
    - `SSH_HOST` - Hetzner server IP
    - `SSH_USER` - SSH username
    - `SSH_PRIVATE_KEY` - SSH private key
-   - `GOTIFY_URL` - Gotify server URL
-   - `GOTIFY_TOKEN` - Gotify app token
+   - `KAMAL_REGISTRY_USERNAME` - GitHub username
+   - `KAMAL_REGISTRY_PASSWORD` - GitHub token (write:packages)
 
 2. **Deploy:**
    ```bash
    git push origin main
    ```
 
-The CI/CD pipeline will:
+The CI/CD pipeline automatically:
 
-- Run security scans
-- Validate configuration
-- Deploy with zero-downtime
-- Run health checks
-- Send notifications
+- Runs security scans (gitleaks, yamllint, shellcheck)
+- Validates configuration
+- Builds and pushes Docker image
+- Deploys with zero-downtime (Kamal)
+- Runs health checks
+- Sends notifications
 
 ## 📊 Monitoring
 
@@ -319,13 +422,13 @@ Alerts are sent to Gotify.
 
 ## 🔒 Security
 
-### Security Layers
+### Defense-in-Depth (6 Layers)
 
-1. **Cloudflare** - DDoS protection, WAF, rate limiting
-2. **Traefik** - TLS 1.3, security headers, rate limiting
-3. **CrowdSec** - IDS/IPS, threat intelligence, auto-blocking
-4. **Authelia** - SSO, 2FA (TOTP), session management
-5. **Fail2ban** - SSH protection, auth failure blocking
+1. **Cloudflare** - DDoS protection, WAF, rate limiting, bot management
+2. **Traefik** - TLS 1.3, security headers, rate limiting, request validation
+3. **CrowdSec** - IDS/IPS, threat intelligence, automatic IP blocking
+4. **Authelia** - SSO, 2FA (TOTP), session management, access control
+5. **Fail2ban** - SSH protection, auth failure blocking, system hardening
 6. **Tailscale** - Zero-trust VPN for private services
 
 ### Access Control
@@ -333,16 +436,19 @@ Alerts are sent to Gotify.
 - **Public services** require Authelia 2FA
 - **Admin services** require 2FA + IP whitelist
 - **Private services** require Tailscale VPN
+- **SSH** key-based authentication only
 
-### Security Best Practices
+### Security Features
 
-✅ All secrets stored in Docker secrets or env files (gitignored)
-✅ No services run as root
-✅ Resource limits on all containers
-✅ Network segmentation between services
-✅ Regular security scans (weekly)
-✅ Automated backups (daily)
-✅ Audit logging to Loki
+✅ **Secrets Management** - 1Password integration, no hardcoded secrets
+✅ **Code Quality** - Pre-commit hooks, gitleaks, automated scanning
+✅ **Network Segmentation** - Isolated networks for public/private/monitoring
+✅ **Resource Limits** - All containers have CPU/memory limits
+✅ **Regular Scans** - Weekly vulnerability scans via GitHub Actions
+✅ **Automated Backups** - Daily backups to Hetzner Storage Box
+✅ **Audit Logging** - All access logged to Loki
+
+See [Security Guide](docs/SECURITY.md) for complete security documentation and [Security Checklist](docs/SECURITY.md#pre-deployment-security-checklist) before production deployment.
 
 ## 🛠 Maintenance
 
@@ -441,21 +547,23 @@ docker exec crowdsec cscli metrics
 
 ```bash
 # Check mount
-mountpoint /mnt/hetzner-storage
+mountpoint /mnt/storagebox
 
 # Remount
-sudo mount -a
+sudo mount /mnt/storagebox
 
 # Check credentials
-cat /root/.storage-box-credentials
+cat /root/.davfs2_secrets
+
+# Manual mount (WebDAV)
+sudo mount.davfs https://u526046.your-storagebox.de /mnt/storagebox
 ```
 
 ## 📚 Documentation
 
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [Security Guide](docs/SECURITY.md)
-- [Monitoring Guide](docs/MONITORING.md)
-- [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
+- [Security Guide](docs/SECURITY.md) - Complete security documentation and checklist
+- [Media Services](docs/MEDIA_SERVICES.md) - Navidrome and Audiobookshelf setup
+- [Storage Box Setup](docs/STORAGE_BOX_SETUP.md) - Hetzner Storage Box configuration
 
 ## 🤝 Contributing
 

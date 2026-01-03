@@ -532,7 +532,7 @@ services:
         limits:
           memory: 1G
           cpus: "1.5"
-  
+
   ##############################################################################
   # PRIVATE SERVICES - Jellyseerr (Request Media Management and Monitoring)
   ##############################################################################
@@ -850,7 +850,7 @@ services:
     volumes:
       - ./config/navidrome:/data
       - ./server-data/navidrome/cache:/cache
-      - hetzner-media:/music:ro  # Read-only access to music on Storage Box
+      - hetzner-media:/music:ro # Read-only access to music on Storage Box
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.navidrome.rule=Host(`navidrome.${DOMAIN}`)"
@@ -885,8 +885,8 @@ services:
     volumes:
       - ./config/audiobookshelf:/config
       - ./server-data/audiobookshelf/metadata:/metadata
-      - hetzner-media:/audiobooks:ro  # Read-only access to audiobooks on Storage Box
-      - hetzner-media:/podcasts:ro    # Read-only access to podcasts on Storage Box
+      - hetzner-media:/audiobooks:ro # Read-only access to audiobooks on Storage Box
+      - hetzner-media:/podcasts:ro # Read-only access to podcasts on Storage Box
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.audiobookshelf.rule=Host(`audiobooks.${DOMAIN}`)"

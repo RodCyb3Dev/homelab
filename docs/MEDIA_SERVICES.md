@@ -50,21 +50,25 @@ Music files should be organized on your Hetzner Storage Box:
 ### Mobile Apps
 
 #### iOS
+
 - **play:Sub** - Premium Subsonic client
 - **substreamer** - Free alternative
 
 #### Android
+
 - **Symfonium** - Modern and feature-rich (recommended)
 - **DSub** - Classic Subsonic client
 - **Ultrasonic** - Open source client
 
 #### Desktop
+
 - **Sublime Music** - Linux GTK client
 - **Sonixd** - Cross-platform Electron app
 
 ### Configuration
 
 Server details for mobile apps:
+
 ```
 Server: https://navidrome.rodneyops.com
 Username: (your username)
@@ -74,6 +78,7 @@ Password: (your password)
 ### First-Time Setup
 
 1. **Access Navidrome:**
+
    ```bash
    open https://navidrome.rodneyops.com
    ```
@@ -158,22 +163,27 @@ Audiobooks and podcasts should be organized on your Hetzner Storage Box:
 ### Supported Formats
 
 **Audio:**
+
 - MP3, M4B, M4A, FLAC, OGG, AAC, WMA
 
 **Ebooks:**
+
 - EPUB, PDF, MOBI, AZW3, CBR, CBZ
 
 **Metadata:**
+
 - metadata.json, desc.txt, reader.txt
 
 ### Mobile Apps
 
 #### iOS
+
 - **Audiobookshelf** (Official)
 - Free on App Store
 - CarPlay support
 
 #### Android
+
 - **Audiobookshelf** (Official)
 - Free on Google Play
 - Android Auto support
@@ -181,6 +191,7 @@ Audiobooks and podcasts should be organized on your Hetzner Storage Box:
 ### First-Time Setup
 
 1. **Access Audiobookshelf:**
+
    ```bash
    open https://audiobooks.rodneyops.com
    ```
@@ -202,6 +213,7 @@ Audiobooks and podcasts should be organized on your Hetzner Storage Box:
 ### Library Organization
 
 **Audiobook folder structure:**
+
 ```
 Author Name/
 └── Book Title/
@@ -212,6 +224,7 @@ Author Name/
 ```
 
 **Podcast folder structure:**
+
 ```
 Podcast Name/
 ├── cover.jpg (optional)
@@ -223,21 +236,25 @@ Podcast Name/
 ### Features Guide
 
 #### Progress Tracking
+
 - Syncs across all devices
 - Resume from where you left off
 - Per-user progress tracking
 
 #### Collections
+
 - Create custom collections
 - Group related books
 - Share collections with users
 
 #### Series Management
+
 - Automatically detects series
 - Shows reading order
 - Tracks series progress
 
 #### Podcast Features
+
 - Auto-download new episodes
 - Episode queue management
 - Playback history
@@ -293,6 +310,7 @@ Authentication:
 ### Backup Strategy
 
 **Metadata Backups (Daily):**
+
 ```bash
 # Navidrome
 /config/navidrome/navidrome.db → Backed up daily
@@ -302,6 +320,7 @@ Authentication:
 ```
 
 **Media Files:**
+
 - Original files on Hetzner Storage Box
 - Consider separate backup of Storage Box
 
@@ -312,6 +331,7 @@ Authentication:
 ### Authentication
 
 Both services are protected by:
+
 1. **Authelia** - Single Sign-On with 2FA
 2. **Traefik** - HTTPS with Let's Encrypt certificates
 3. **Individual service authentication** - Username/password per service
@@ -325,11 +345,13 @@ Both services are protected by:
 ### User Management
 
 #### Navidrome
+
 - Admin user created on first signup
 - Add users: Settings → Users → "Add User"
 - User roles: Admin or Regular
 
 #### Audiobookshelf
+
 - Root user created during setup
 - Add users: Settings → Users → "Add User"
 - User permissions: Admin, User, or Guest
@@ -380,6 +402,7 @@ docker exec audiobookshelf ls -lah /podcasts
 ### Navidrome Issues
 
 **Problem:** Music not showing up
+
 ```bash
 # Check mount
 docker exec navidrome ls /music
@@ -392,6 +415,7 @@ docker exec navidrome ls -la /music
 ```
 
 **Problem:** Transcoding not working
+
 ```bash
 # Check ffmpeg
 docker exec navidrome ffmpeg -version
@@ -403,6 +427,7 @@ docker exec navidrome cat /data/navidrome.toml
 ### Audiobookshelf Issues
 
 **Problem:** Audiobooks not detected
+
 ```bash
 # Check folder structure
 docker exec audiobookshelf ls -R /audiobooks | head -20
@@ -415,6 +440,7 @@ docker logs audiobookshelf | grep -i scan
 ```
 
 **Problem:** Podcast downloads failing
+
 ```bash
 # Check network connectivity
 docker exec audiobookshelf curl -I https://example.com/podcast.rss
@@ -429,6 +455,7 @@ docker logs audiobookshelf | grep -i podcast
 ### Common Issues
 
 **Mount point empty:**
+
 ```bash
 # On Hetzner server, check Storage Box mount
 df -h | grep storagebox
@@ -438,6 +465,7 @@ mount -a
 ```
 
 **Permission denied:**
+
 ```bash
 # Fix permissions on local config
 sudo chown -R 1000:1000 config/navidrome
@@ -449,18 +477,21 @@ sudo chown -R 1000:1000 config/audiobookshelf
 ## 📚 Resources
 
 ### Navidrome
+
 - **Documentation:** https://www.navidrome.org/docs/
 - **GitHub:** https://github.com/navidrome/navidrome
 - **Subsonic API:** http://www.subsonic.org/pages/api.jsp
 - **Community:** https://github.com/navidrome/navidrome/discussions
 
 ### Audiobookshelf
+
 - **Documentation:** https://www.audiobookshelf.org/docs
 - **GitHub:** https://github.com/advplyr/audiobookshelf
 - **Community:** https://github.com/advplyr/audiobookshelf/discussions
 - **Discord:** https://discord.gg/audiobookshelf
 
 ### Mobile Apps
+
 - **Navidrome Apps:** https://www.navidrome.org/docs/usage/apps/
 - **Audiobookshelf Apps:** https://www.audiobookshelf.org/install
 
