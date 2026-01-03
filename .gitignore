@@ -128,11 +128,13 @@ temp/
 # KAMAL DEPLOYMENT
 ##############################################################################
 
-# Kamal state and credentials (but NOT the secrets script itself)
-# The .kamal/secrets file is a SCRIPT that fetches secrets, not actual secrets
+# Kamal state and credentials
+# The .kamal/secrets file may contain actual secrets when using environment variables
 .kamal/*.pem
 .kamal/*.key
 .kamal/secrets-*  # Ignore any actual secret dumps
+.kamal/secrets    # Ignore secrets file (may contain actual values)
+!.kamal/secrets.sample  # But allow the sample/template
 
 # Docker registry credentials
 .docker/config.json
@@ -378,3 +380,4 @@ access-*.log
 # END OF GITIGNORE
 ##############################################################################
 
+.kamal/secrets

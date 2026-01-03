@@ -16,16 +16,9 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /opt/homelab
 
-# Copy configuration files
+# Copy only essential files needed for container operation
 COPY config/ ./config/
-COPY scripts/ ./scripts/
 COPY docker-compose.yml ./
-COPY Makefile ./
-COPY README.md ./
-COPY docs/ ./docs/
-
-# Make scripts executable
-RUN chmod +x scripts/*.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
@@ -33,4 +26,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 # Default command
 CMD ["docker-compose", "up", "-d"]
-
