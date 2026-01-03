@@ -546,6 +546,7 @@ services:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-UTC}
+      - APPLICATION_URL=https://jellyseerr.${TAILSCALE_DOMAIN}
     volumes:
       - ./config/jellyseerr:/config
     depends_on:

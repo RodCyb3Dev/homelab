@@ -54,6 +54,13 @@
         }
       }
     },
+    "flaresolverr.kooka-lake.ts.net:443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://gluetun:8191"
+        }
+      }
+    },
     "qbittorrent.kooka-lake.ts.net:443": {
       "Handlers": {
         "/": {
@@ -72,6 +79,13 @@
       "Handlers": {
         "/": {
           "Proxy": "http://127.0.0.1:9000"
+        }
+      }
+    },
+    "jellyseerr.kooka-lake.ts.net:443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://127.0.0.1:5055"
         }
       }
     }
