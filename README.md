@@ -349,27 +349,76 @@ See [Storage Box Setup Guide](docs/STORAGE_BOX_SETUP.md) for detailed configurat
 
 ### Deployment Methods
 
-#### Option 1: Kamal (Zero-Downtime) - Recommended
+#### Option 1: Ansible (Recommended) - Infrastructure as Code
+
+**Local Deployment:**
 
 ```bash
-# Setup Kamal
-make kamal-setup
+# Install Ansible
+make ansible-install
 
-# Deploy
-make kamal-deploy
+# Test connection
+make ansible-ping
 
-# Rollback if needed
-make kamal-rollback
+# Deploy (requires environment variables)
+export STORAGE_BOX_PASSWORD="your-password"
+export CROWDSEC_ENROLL_KEY="your-key"
+export CROWDSEC_BOUNCER_KEY="your-key"
+export GRAFANA_ADMIN_PASSWORD="your-password"
+export GOTIFY_ADMIN_PASSWORD="your-password"
+export TS_AUTHKEY="your-key"
+
+make ansible-deploy
+
+# Or use Ansible Vault for secrets
+make ansible-vault-create
+make ansible-deploy
 ```
 
 **Benefits:**
 
-- Zero-downtime rolling updates
-- Only Docker images deployed (no file transfers)
-- Automatic health checks
-- Instant rollback support
+- Infrastructure as Code (IaC)
+- Idempotent deployments
+- Config file management
+- Works with existing Traefik/Tailscale setup
+- No conflicts with docker-compose
+- Easy rollback and verification
 
-#### Option 2: Docker Compose (Manual)
+**See [ansible/README.md](ansible/README.md) for detailed documentation.**
+
+#### Option 2: GitHub Actions (CI/CD) - Automated
+
+The GitHub Actions workflow automatically uses Ansible for deployment:
+
+1. **Setup GitHub Secrets:**
+   - `HETZNER_SSH_HOST` - Hetzner server IP (95.216.176.147)
+   - `HETZNER_SSH_USER` - SSH username (deploy)
+   - `HETZNER_SSH_KEY` - SSH private key (corresponds to `github_key.pub` on server)
+   - `SSH_PORT` - SSH port (22, optional)
+   - `STORAGE_BOX_PASSWORD` - Storage box password
+   - `CROWDSEC_ENROLL_KEY` - CrowdSec enrollment key
+   - `CROWDSEC_BOUNCER_KEY` - CrowdSec bouncer key
+   - `GRAFANA_ADMIN_USER` - Grafana admin user
+   - `GRAFANA_ADMIN_PASSWORD` - Grafana admin password
+   - `GOTIFY_ADMIN_USER` - Gotify admin user
+   - `GOTIFY_ADMIN_PASSWORD` - Gotify admin password
+   - `TS_AUTHKEY` - Tailscale auth key
+   - `GOTIFY_URL` - Gotify notification URL
+   - `GOTIFY_TOKEN` - Gotify notification token
+
+2. **Deploy:**
+   ```bash
+   git push origin main
+   ```
+
+   The workflow will:
+   - Run security scans
+   - Validate configuration
+   - Deploy with Ansible (syncs configs, manages secrets, deploys services)
+   - Verify service health
+   - Send notifications
+
+#### Option 3: Docker Compose (Manual)
 
 ```bash
 # Start all services
@@ -385,27 +434,13 @@ make health
 make restart
 ```
 
-#### Option 3: GitHub Actions (CI/CD)
-
-1. **Setup GitHub Secrets:**
-   - `SSH_HOST` - Hetzner server IP
-   - `SSH_USER` - SSH username
-   - `SSH_PRIVATE_KEY` - SSH private key
-   - `KAMAL_REGISTRY_USERNAME` - GitHub username
-   - `KAMAL_REGISTRY_PASSWORD` - GitHub token (write:packages)
-
-2. **Deploy:**
-   ```bash
-   git push origin main
-   ```
 
 The CI/CD pipeline automatically:
 
 - Runs security scans (gitleaks, yamllint, shellcheck)
 - Validates configuration
-- Builds and pushes Docker image
-- Deploys with zero-downtime (Kamal)
-- Runs health checks
+- Deploys with Ansible (syncs configs, manages secrets, deploys services)
+- Verifies service health
 - Sends notifications
 
 ## 📊 Monitoring

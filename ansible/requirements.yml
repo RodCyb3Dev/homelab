@@ -1,0 +1,8 @@
+##############################################################################
+# ANSIBLE ROLE REQUIREMENTS
+# Install with: ansible-galaxy install -r requirements.yml
+##############################################################################
+
+---
+# No external roles required for now
+# All roles are custom-built in ansible/roles/

@@ -1,0 +1,71 @@
+##############################################################################
+# SYNC SECRETS ROLE - Manage secrets and environment variables
+# Creates .env file from Ansible vault or environment variables
+##############################################################################
+
+---
+- name: Load secrets from environment or vault
+  set_fact:
+    secrets:
+      DOMAIN: "{{ domain }}"
+      TZ: "{{ timezone }}"
+      PGID: "{{ vault_pgid | default('1000') }}"
+      PUID: "{{ vault_puid | default('1000') }}"
+      STORAGE_BOX_PASSWORD: "{{ lookup('env', 'STORAGE_BOX_PASSWORD') | default(vault_storage_box_password | default('')) }}"
+      STORAGE_BOX_USER: "{{ lookup('env', 'STORAGE_BOX_USER') | default(vault_storage_box_user | default('')) }}"
+      STORAGE_BOX_HOST: "{{ lookup('env', 'STORAGE_BOX_HOST') | default(vault_storage_box_host | default('')) }}"
+      POSTGRESQL_PASSWORD: "{{ lookup('env', 'POSTGRESQL_PASSWORD') | default(vault_postgresql_password | default('')) }}"
+      REDIS_PASSWORD: "{{ lookup('env', 'REDIS_PASSWORD') | default(vault_redis_password | default('')) }}"
+      CROWDSEC_ENROLL_KEY: "{{ lookup('env', 'CROWDSEC_ENROLL_KEY') | default(vault_crowdsec_enroll_key | default('')) }}"
+      CROWDSEC_BOUNCER_API_KEY: "{{ lookup('env', 'CROWDSEC_BOUNCER_KEY') | default(vault_crowdsec_bouncer_key | default('')) }}"
+      GRAFANA_ADMIN_USER: "{{ lookup('env', 'GRAFANA_ADMIN_USER') | default(vault_grafana_admin_user | default('admin')) }}"
+      GRAFANA_ADMIN_PASSWORD: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default(vault_grafana_admin_password | default('')) }}"
+      GOTIFY_ADMIN_USER: "{{ lookup('env', 'GOTIFY_ADMIN_USER') | default(vault_gotify_admin_user | default('admin')) }}"
+      GOTIFY_ADMIN_PASSWORD: "{{ lookup('env', 'GOTIFY_ADMIN_PASSWORD') | default(vault_gotify_admin_password | default('')) }}"
+      TS_AUTHKEY: "{{ lookup('env', 'TS_AUTHKEY') | default(vault_tailscale_auth_key | default('')) }}"
+      CF_API_TOKEN: "{{ lookup('env', 'CF_API_TOKEN') | default(vault_cf_api_token | default('')) }}"
+      CF_API_EMAIL: "{{ lookup('env', 'CF_API_EMAIL') | default(vault_cf_api_email | default('')) }}"
+      LE_EMAIL_SSL: "{{ lookup('env', 'LE_EMAIL_SSL') | default(vault_le_email_ssl | default('')) }}"
+      AUTHELIA_STORAGE_POSTGRESQL_PASSWORD: "{{ lookup('env', 'AUTHELIA_STORAGE_POSTGRESQL_PASSWORD') | default(vault_authelia_storage_postgresql_password | default('')) }}"
+      AUTHELIA_JWT_SECRET: "{{ lookup('env', 'AUTHELIA_JWT_SECRET') | default(vault_authelia_jwt_secret | default('')) }}"
+      AUTHELIA_STORAGE_ENCRYPTION_KEY: "{{ lookup('env', 'AUTHELIA_STORAGE_ENCRYPTION_KEY') | default(vault_authelia_storage_encryption_key | default('')) }}"
+      AUTHELIA_SESSION_SECRET: "{{ lookup('env', 'AUTHELIA_SESSION_SECRET') | default(vault_authelia_session_secret | default('')) }}"
+      AUTHELIA_NOTIFIER_SMTP_PASSWORD: "{{ lookup('env', 'AUTHELIA_NOTIFIER_SMTP_PASSWORD') | default(vault_authelia_notifier_smtp_password | default('')) }}"
+      BACKUP_ENCRYPTION_KEY: "{{ lookup('env', 'BACKUP_ENCRYPTION_KEY') | default(vault_backup_encryption_key | default('')) }}"
+      SMTP_HOST: "{{ lookup('env', 'SMTP_HOST') | default(vault_smtp_host | default('')) }}"
+      SMTP_PORT: "{{ lookup('env', 'SMTP_PORT') | default(vault_smtp_port | default('')) }}"
+      SMTP_USERNAME: "{{ lookup('env', 'SMTP_USERNAME') | default(vault_smtp_username | default('')) }}"
+      SMTP_PASSWORD: "{{ lookup('env', 'SMTP_PASSWORD') | default(vault_smtp_password | default('')) }}"
+      VPN_PRIVATE_KEY: "{{ lookup('env', 'VPN_PRIVATE_KEY') | default(vault_vpn_private_key | default('')) }}"
+      VPN_ADDRESSES: "{{ lookup('env', 'VPN_ADDRESSES') | default(vault_vpn_addresses | default('')) }}"
+      VPN_PROVIDER: "{{ lookup('env', 'VPN_PROVIDER') | default(vault_vpn_provider | default('')) }}"
+      VPN_COUNTRIES: "{{ lookup('env', 'VPN_COUNTRIES') | default(vault_vpn_countries | default('')) }}"
+      JELLYFIN_PUBLISHED_URL: "{{ lookup('env', 'JELLYFIN_PUBLISHED_URL') | default(vault_jellyfin_published_url | default('')) }}"
+
+  no_log: true
+  tags: sync_secrets
+
+- name: Create .env file for docker-compose
+  template:
+    src: env.j2
+    dest: "{{ deploy_path }}/.env"
+    owner: deploy
+    group: deploy
+    mode: '0600'
+  vars:
+    env_vars: "{{ secrets }}"
+  no_log: true
+  tags: sync_secrets
+
+- name: Sync secret files (if provided via vault)
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ deploy_path }}/{{ item.dest }}"
+    owner: deploy
+    group: deploy
+    mode: '0600'
+    remote_src: false
+  loop: "{{ secret_files | default([]) }}"
+  when: secret_files is defined
+  no_log: true
+  tags: sync_secrets

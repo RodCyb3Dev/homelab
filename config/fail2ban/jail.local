@@ -1,0 +1,130 @@
+##############################################################################
+# FAIL2BAN - Jail Configuration
+# Protection against brute force and automated attacks
+##############################################################################
+
+[DEFAULT]
+# Ban settings
+bantime = 3600
+findtime = 600
+maxretry = 5
+backend = auto
+usedns = warn
+logencoding = auto
+enabled = false
+mode = normal
+
+# Actions
+destemail = rodney@kodeflash.dev
+sendername = Fail2Ban-Homelab
+mta = sendmail
+protocol = tcp
+chain = INPUT
+port = 0:65535
+banaction = iptables-multiport
+banaction_allports = iptables-allports
+action_ = %(banaction)s[name=%(__name__)s, bantime="%(bantime)s", port="%(port)s", protocol="%(protocol)s", chain="%(chain)s"]
+action_mw = %(banaction)s[name=%(__name__)s, bantime="%(bantime)s", port="%(port)s", protocol="%(protocol)s", chain="%(chain)s"]
+            %(mta)s-whois[name=%(__name__)s, sender="%(sendername)s", dest="%(destemail)s", protocol="%(protocol)s", chain="%(chain)s"]
+action_mwl = %(banaction)s[name=%(__name__)s, bantime="%(bantime)s", port="%(port)s", protocol="%(protocol)s", chain="%(chain)s"]
+             %(mta)s-whois-lines[name=%(__name__)s, sender="%(sendername)s", dest="%(destemail)s", logpath=%(logpath)s, chain="%(chain)s"]
+action = %(action_)s
+
+##############################################################################
+# SSH PROTECTION
+##############################################################################
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 3
+bantime = 3600
+findtime = 600
+
+[sshd-ddos]
+enabled = true
+port = ssh
+filter = sshd-ddos
+logpath = /var/log/auth.log
+maxretry = 2
+bantime = 7200
+findtime = 300
+
+##############################################################################
+# TRAEFIK PROTECTION
+##############################################################################
+[traefik-auth]
+enabled = true
+port = http,https
+filter = traefik-auth
+logpath = /var/log/traefik/access.log
+maxretry = 5
+bantime = 3600
+findtime = 600
+
+[traefik-botsearch]
+enabled = true
+port = http,https
+filter = traefik-botsearch
+logpath = /var/log/traefik/access.log
+maxretry = 3
+bantime = 7200
+findtime = 600
+
+##############################################################################
+# AUTHELIA PROTECTION
+##############################################################################
+[authelia]
+enabled = true
+port = http,https
+filter = authelia
+logpath = /var/log/traefik/access.log
+maxretry = 5
+bantime = 3600
+findtime = 600
+action = %(action_mwl)s
+
+##############################################################################
+# DOCKER PROTECTION
+##############################################################################
+[docker-auth]
+enabled = true
+port = http,https
+filter = docker-auth
+logpath = /var/log/syslog
+maxretry = 3
+bantime = 7200
+findtime = 600
+
+##############################################################################
+# HTTP BAD REQUESTS
+##############################################################################
+[http-get-dos]
+enabled = true
+port = http,https
+filter = http-get-dos
+logpath = /var/log/traefik/access.log
+maxretry = 300
+findtime = 300
+bantime = 600
+
+[http-post-dos]
+enabled = true
+port = http,https
+filter = http-post-dos
+logpath = /var/log/traefik/access.log
+maxretry = 100
+findtime = 300
+bantime = 600
+
+##############################################################################
+# RECIDIVE (Persistent Offenders)
+##############################################################################
+[recidive]
+enabled = true
+logpath = /var/log/fail2ban.log
+banaction = %(banaction_allports)s
+bantime = 86400
+findtime = 86400
+maxretry = 5

@@ -53,6 +53,21 @@ config/**/*secret*
 config/**/*password*
 
 ##############################################################################
+# ANSIBLE
+##############################################################################
+
+# Ansible vault files
+ansible/vault.yml
+ansible/*.vault
+ansible/**/*.vault
+
+# Ansible retry files
+*.retry
+
+# Ansible fact cache
+/tmp/ansible_facts/
+
+##############################################################################
 # CONFIGURATION & STATE
 ##############################################################################
 
@@ -125,16 +140,19 @@ temp/
 *.swo
 
 ##############################################################################
-# KAMAL DEPLOYMENT
+# ANSIBLE
 ##############################################################################
 
-# Kamal state and credentials
-# The .kamal/secrets file may contain actual secrets when using environment variables
-.kamal/*.pem
-.kamal/*.key
-.kamal/secrets-*  # Ignore any actual secret dumps
-.kamal/secrets    # Ignore secrets file (may contain actual values)
-!.kamal/secrets.sample  # But allow the sample/template
+# Ansible vault files
+ansible/vault.yml
+ansible/*.vault
+ansible/**/*.vault
+
+# Ansible retry files
+*.retry
+
+# Ansible fact cache
+/tmp/ansible_facts/
 
 # Docker registry credentials
 .docker/config.json
@@ -196,188 +214,3 @@ $RECYCLE.BIN/
 [._]ss[a-gi-z]
 [._]sw[a-p]
 Session.vim
-Sessionx.vim
-
-# Emacs
-*~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
-
-# Sublime Text
-*.sublime-workspace
-*.sublime-project
-
-##############################################################################
-# PACKAGE MANAGERS
-##############################################################################
-
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.npm
-.eslintcache
-
-# Ruby
-*.gem
-.bundle/
-vendor/bundle/
-Gemfile.lock
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-ENV/
-pip-log.txt
-pip-delete-this-directory.txt
-
-##############################################################################
-# BUILD ARTIFACTS
-##############################################################################
-
-# Compiled files
-*.o
-*.a
-*.so
-*.dylib
-*.exe
-*.out
-
-# Distribution
-dist/
-build/
-*.egg-info/
-
-##############################################################################
-# TESTING
-##############################################################################
-
-# Test coverage
-coverage/
-.coverage
-.pytest_cache/
-htmlcov/
-
-# Test databases
-*.test.db
-test.db
-*.test.sqlite3
-
-##############################################################################
-# MONITORING & METRICS
-##############################################################################
-
-# Prometheus
-config/prometheus/data/
-prometheus-data/
-
-# Grafana
-grafana-data/
-config/grafana/data/
-
-# Loki
-loki-data/
-config/loki/data/
-
-##############################################################################
-# MISC
-##############################################################################
-
-# Compiled binary files
-*.bin
-*.dat
-
-# Archives
-*.7z
-*.dmg
-*.gz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
-
-# Database dumps
-*.sql
-*.dump
-
-# Configuration backups
-*.conf.backup
-*.yaml.backup
-*.yml.backup
-
-# PID files
-*.pid
-
-# Lock files
-*.lock
-
-##############################################################################
-# PROJECT SPECIFIC
-##############################################################################
-
-# Old infrastructure (if not yet cleaned up)
-docker-compose-pangolin/
-docker-compose-tailscale/
-old-configs-backup-*/
-
-# Local development overrides
-config/local/
-*.local
-
-# Documentation builds
-docs/_build/
-docs/.doctrees/
-
-# CI/CD artifacts
-.github/workflows/*.log
-
-##############################################################################
-# SECURITY SCANNING
-##############################################################################
-
-# Vulnerability reports
-trivy-results.sarif
-vulnerability-report.txt
-security-scan-*.txt
-
-# Audit logs (sensitive)
-audit-*.log
-access-*.log
-
-##############################################################################
-# ALLOW SPECIFIC FILES
-##############################################################################
-
-# Allow example/template files
-!.env.example
-!.env.template
-!config.example
-!config.template
-!example.yml
-!example.yaml
-
-# Allow documentation
-!README.md
-!CHANGELOG.md
-!LICENSE
-
-# Allow configuration templates
-!config/**/example.*
-!config/**/*.example
-!config/**/*.template
-
-##############################################################################
-# END OF GITIGNORE
-##############################################################################
-
-.kamal/secrets

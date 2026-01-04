@@ -158,35 +158,39 @@ run-with-1password: ## Run docker-compose with 1Password secrets
 	@op run -- docker-compose up -d
 
 ##############################################################################
-# Kamal Deployment Commands
+# Ansible Deployment Commands
 ##############################################################################
 
-kamal-setup: ## Install Kamal
-	@echo "Installing Kamal..."
-	@gem install kamal
-	@echo "✅ Kamal installed"
+ansible-install: ## Install Ansible
+	@echo "Installing Ansible..."
+	@pip install ansible
+	@echo "✅ Ansible installed"
 
-kamal-init: ## Initialize Kamal configuration
-	@kamal init
+ansible-check: ## Check Ansible syntax
+	@cd ansible && ansible-playbook --syntax-check playbook.yml
+	@cd ansible && ansible-inventory --list
 
-kamal-deploy: ## Deploy with Kamal (zero-downtime)
-	@echo "Deploying with Kamal..."
-	@op run -- kamal deploy
+ansible-deploy: ## Deploy with Ansible (requires environment variables)
+	@echo "Deploying with Ansible..."
+	@cd ansible && ansible-playbook playbook.yml -v
 
-kamal-redeploy: ## Redeploy current version
-	@kamal redeploy
+ansible-deploy-check: ## Dry run deployment (check mode)
+	@cd ansible && ansible-playbook playbook.yml --check
 
-kamal-rollback: ## Rollback to previous version
-	@kamal rollback
+ansible-deploy-tags: ## Deploy specific tags (usage: make ansible-deploy-tags TAGS=sync_config,deploy_services)
+	@cd ansible && ansible-playbook playbook.yml --tags $(TAGS)
 
-kamal-logs: ## View Kamal deployment logs
-	@kamal app logs
+ansible-vault-create: ## Create Ansible vault file
+	@cd ansible && ansible-vault create vault.yml
 
-kamal-console: ## Open console on production server
-	@kamal app exec -i bash
+ansible-vault-edit: ## Edit Ansible vault file
+	@cd ansible && ansible-vault edit vault.yml
 
-kamal-details: ## Show deployment details
-	@kamal details
+ansible-vault-view: ## View Ansible vault file
+	@cd ansible && ansible-vault view vault.yml
+
+ansible-ping: ## Test Ansible connection to server
+	@cd ansible && ansible all -m ping
 
 ##############################################################################
 # QA & Security Checks

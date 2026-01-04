@@ -31,8 +31,8 @@ on:
     - cron: '0 2 * * *'
 
 env:
-  SSH_HOST: ${{ secrets.SSH_HOST }}
-  SSH_USER: ${{ secrets.SSH_USER }}
+  SSH_HOST: ${{ secrets.HETZNER_SSH_HOST }}
+  SSH_USER: ${{ secrets.HETZNER_SSH_USER }}
   SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
   DEPLOY_PATH: /opt/homelab
   GOTIFY_URL: ${{ secrets.GOTIFY_URL }}
@@ -95,6 +95,13 @@ jobs:
           file_or_dir: config/
           strict: false
 
+      - name: Validate Ansible playbook syntax
+        run: |
+          pip install ansible
+          cd ansible
+          ansible-playbook --syntax-check playbook.yml
+          ansible-inventory --list
+
   ##############################################################################
   # PRE-DEPLOYMENT HEALTH CHECK
   ##############################################################################
@@ -109,7 +116,7 @@ jobs:
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.HETZNER_SSH_KEY }}
 
       - name: Check current service health
         run: |
@@ -129,10 +136,10 @@ jobs:
           EOF
 
   ##############################################################################
-  # DEPLOY
+  # DEPLOY WITH ANSIBLE
   ##############################################################################
   deploy:
-    name: Deploy to Hetzner
+    name: Deploy to Hetzner with Ansible
     runs-on: ubuntu-latest
     needs: pre-deployment-check
     environment:
@@ -145,52 +152,66 @@ jobs:
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.HETZNER_SSH_KEY }}
 
-      - name: Deploy to server
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
         run: |
-          ssh -o StrictHostKeyChecking=no -p ${{ env.SSH_PORT }} ${{ env.SSH_USER }}@${{ env.SSH_HOST }} << 'EOF'
-            set -e
-            
-            echo "🚀 Starting deployment..."
-            
-            # Navigate to deployment directory
-            cd ${{ env.DEPLOY_PATH }} || exit 1
-            
-            # Pull latest code
-            echo "📥 Pulling latest changes from Git..."
-            git fetch origin
-            git reset --hard origin/main
-            
-            # Pull latest Docker images
-            echo "🐳 Pulling latest Docker images..."
-            docker-compose pull
-            
-            # Run database migrations (if any)
-            # echo "🗃️ Running database migrations..."
-            # docker-compose run --rm app migrate
-            
-            # Deploy with zero-downtime rolling update
-            echo "♻️ Deploying services..."
-            docker-compose up -d --remove-orphans --force-recreate
-            
-            # Wait for services to be healthy
-            echo "⏳ Waiting for services to be healthy..."
-            sleep 30
-            
-            # Verify critical services
-            echo "✅ Verifying service health..."
-            docker-compose ps | grep -E "(traefik|crowdsec|authelia)" | grep Up || {
-              echo "❌ Critical services failed to start!"
-              exit 1
-            }
-            
-            # Cleanup old images
-            echo "🧹 Cleaning up old Docker images..."
-            docker image prune -f
-            
-            echo "✅ Deployment completed successfully!"
-          EOF
+          pip install ansible
+
+      - name: Configure SSH known_hosts for Ansible
+        # Ansible automatically uses the SSH agent set up by webfactory/ssh-agent above
+        # We just need to add the host to known_hosts to avoid host key verification prompts
+        # No need to write the key file - SSH agent is sufficient
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ env.SSH_PORT }} ${{ env.SSH_HOST }} >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy with Ansible
+        env:
+          DOMAIN: ${{ secrets.DOMAIN }}
+          TZ: ${{ secrets.TIMEZONE }}
+          PGID: ${{ secrets.PGID }}
+          PUID: ${{ secrets.PUID }}
+          STORAGE_BOX_PASSWORD: ${{ secrets.STORAGE_BOX_PASSWORD }}
+          STORAGE_BOX_USER: ${{ secrets.STORAGE_BOX_USER }}
+          STORAGE_BOX_HOST: ${{ secrets.STORAGE_BOX_HOST }}
+          POSTGRESQL_PASSWORD: ${{ secrets.POSTGRESQL_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          CROWDSEC_ENROLL_KEY: ${{ secrets.CROWDSEC_ENROLL_KEY }}
+          CROWDSEC_BOUNCER_KEY: ${{ secrets.CROWDSEC_BOUNCER_KEY }}
+          GRAFANA_ADMIN_USER: ${{ secrets.GRAFANA_ADMIN_USER }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          GOTIFY_ADMIN_USER: ${{ secrets.GOTIFY_ADMIN_USER }}
+          GOTIFY_ADMIN_PASSWORD: ${{ secrets.GOTIFY_ADMIN_PASSWORD }}
+          TS_AUTHKEY: ${{ secrets.TS_AUTHKEY }}
+          TAILSCALE_DOMAIN: ${{ secrets.TAILSCALE_DOMAIN }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_API_EMAIL: ${{ secrets.CF_API_EMAIL }}
+          LE_EMAIL_SSL: ${{ secrets.LE_EMAIL_SSL }}
+          AUTHELIA_STORAGE_POSTGRESQL_PASSWORD: ${{ secrets.AUTHELIA_STORAGE_POSTGRESQL_PASSWORD }}
+          AUTHELIA_JWT_SECRET: ${{ secrets.AUTHELIA_JWT_SECRET }}
+          AUTHELIA_STORAGE_ENCRYPTION_KEY: ${{ secrets.AUTHELIA_STORAGE_ENCRYPTION_KEY }}
+          AUTHELIA_SESSION_SECRET: ${{ secrets.AUTHELIA_SESSION_SECRET }}
+          AUTHELIA_NOTIFIER_SMTP_PASSWORD: ${{ secrets.AUTHELIA_NOTIFIER_SMTP_PASSWORD }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT | default('587') }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          VPN_PRIVATE_KEY: ${{ secrets.VPN_PRIVATE_KEY }}
+          VPN_ADDRESSES: ${{ secrets.VPN_ADDRESSES | default('10.2.0.2/32') }}
+          VPN_PROVIDER: ${{ secrets.VPN_PROVIDER | default('protonvpn') }}
+          VPN_COUNTRIES: ${{ secrets.VPN_COUNTRIES | default('Netherlands') }}
+          JELLYFIN_PUBLISHED_URL: ${{ secrets.JELLYFIN_PUBLISHED_URL | default('https://jellyfin.kooka-lake.ts.net') }}
+        run: |
+          cd ansible
+          ansible-playbook playbook.yml -v
 
       - name: Notify success
         if: success()
@@ -258,7 +279,10 @@ jobs:
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.HETZNER_SSH_KEY }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Execute rollback
         run: |

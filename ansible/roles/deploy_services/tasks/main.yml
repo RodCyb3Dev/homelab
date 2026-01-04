@@ -1,0 +1,69 @@
+##############################################################################
+# DEPLOY SERVICES ROLE - Manage docker-compose services
+# Handles rolling updates and service orchestration
+##############################################################################
+
+---
+- name: Check if docker-compose is installed
+  command: docker-compose version
+  register: docker_compose_check
+  changed_when: false
+  failed_when: false
+  tags: deploy_services
+
+- name: Fail if docker-compose is not installed
+  fail:
+    msg: "docker-compose is not installed. Please install it first."
+  when: docker_compose_check.rc != 0
+  tags: deploy_services
+
+- name: Pull latest Docker images
+  command: docker-compose pull
+  args:
+    chdir: "{{ deploy_path }}"
+  environment:
+    COMPOSE_FILE: "{{ deploy_path }}/{{ docker_compose_file }}"
+  register: pull_result
+  changed_when: "'up to date' not in pull_result.stdout"
+  tags: deploy_services
+
+- name: Get list of services from docker-compose
+  command: docker-compose config --services
+  args:
+    chdir: "{{ deploy_path }}"
+  register: services_list
+  changed_when: false
+  tags: deploy_services
+
+- name: Display services to be deployed
+  debug:
+    msg: "Services to deploy: {{ services_list.stdout_lines }}"
+  tags: deploy_services
+
+- name: Deploy services with rolling update
+  command: docker-compose up -d --remove-orphans --force-recreate {{ item }}
+  args:
+    chdir: "{{ deploy_path }}"
+  environment:
+    COMPOSE_FILE: "{{ deploy_path }}/{{ docker_compose_file }}"
+  loop: "{{ services_list.stdout_lines }}"
+  register: deploy_result
+  tags: deploy_services
+
+- name: Wait for services to start
+  pause:
+    seconds: 10
+  tags: deploy_services
+
+- name: Verify services are running
+  command: docker-compose ps
+  args:
+    chdir: "{{ deploy_path }}"
+  register: services_status
+  changed_when: false
+  tags: deploy_services
+
+- name: Display service status
+  debug:
+    var: services_status.stdout_lines
+  tags: deploy_services

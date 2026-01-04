@@ -537,7 +537,7 @@ services:
   ##############################################################################
 
   jellyseerr:
-    image: jellyseerr/jellyseerr:latest
+    image: fallenbagel/jellyseerr:latest
     container_name: jellyseerr
     restart: unless-stopped
     network_mode: "service:tailscale"

@@ -1,0 +1,83 @@
+##############################################################################
+# SYNC CONFIG ROLE - Synchronize configuration files
+# Preserves existing runtime files (acme.json, logs, etc.)
+##############################################################################
+
+---
+- name: Ensure config directories exist on server
+  file:
+    path: "{{ deploy_path }}/config/{{ item }}"
+    state: directory
+    owner: deploy
+    group: deploy
+    mode: '0755'
+  loop:
+    - traefik
+    - traefik/dynamic
+    - traefik/logs
+    - authelia
+    - crowdsec
+    - grafana
+    - grafana/provisioning
+    - grafana/provisioning/dashboards
+    - grafana/provisioning/datasources
+    - prometheus
+    - loki
+    - promtail
+    - fail2ban
+    - fail2ban/filter.d
+  tags: sync_config
+
+- name: Sync docker-compose.yml
+  synchronize:
+    src: "{{ playbook_dir }}/../docker-compose.yml"
+    dest: "{{ deploy_path }}/docker-compose.yml"
+    mode: push
+    owner: deploy
+    group: deploy
+    perms: yes
+  tags: sync_config
+
+- name: Sync configuration files (excluding secrets and runtime data)
+  synchronize:
+    src: "{{ playbook_dir }}/../config/"
+    dest: "{{ deploy_path }}/config/"
+    mode: push
+    owner: deploy
+    group: deploy
+    perms: yes
+    rsync_opts:
+      - "--exclude=*.log"
+      - "--exclude=*.gz"
+      - "--exclude=acme.json"
+      - "--exclude=*.db"
+      - "--exclude=*.sqlite*"
+      - "--exclude=*.state"
+      - "--exclude=data/"
+      - "--exclude=db/"
+      - "--exclude=cache/"
+      - "--exclude=logs/"
+      - "--exclude=*.txt"
+      - "--exclude=*.key"
+      - "--exclude=*.pem"
+      - "--exclude=*.crt"
+      - "--update"
+  tags: sync_config
+
+- name: Ensure Traefik acme.json exists and has correct permissions
+  file:
+    path: "{{ deploy_path }}/config/traefik/acme.json"
+    state: touch
+    owner: deploy
+    group: deploy
+    mode: '0600'
+  tags: sync_config
+
+- name: Ensure Traefik logs directory exists
+  file:
+    path: "{{ deploy_path }}/config/traefik/logs"
+    state: directory
+    owner: deploy
+    group: deploy
+    mode: '0755'
+  tags: sync_config

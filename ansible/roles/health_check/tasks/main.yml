@@ -1,0 +1,76 @@
+##############################################################################
+# HEALTH CHECK ROLE - Verify service health after deployment
+##############################################################################
+
+---
+- name: Wait for services to be healthy
+  pause:
+    seconds: 30
+  tags: health_check
+
+- name: Check critical services are running
+  command: docker-compose ps --filter "status=running" --format "{{ '{{.Name}}' }}"
+  args:
+    chdir: "{{ deploy_path }}"
+  register: running_services
+  changed_when: false
+  tags: health_check
+
+- name: Verify Traefik is running
+  command: docker ps --filter "name=traefik" --filter "status=running" --format "{{ '{{.Names}}' }}"
+  register: traefik_check
+  changed_when: false
+  failed_when: traefik_check.stdout == ""
+  tags: health_check
+
+- name: Verify CrowdSec is running
+  command: docker ps --filter "name=crowdsec" --filter "status=running" --format "{{ '{{.Names}}' }}"
+  register: crowdsec_check
+  changed_when: false
+  failed_when: crowdsec_check.stdout == ""
+  tags: health_check
+
+- name: Verify Authelia is running
+  command: docker ps --filter "name=authelia" --filter "status=running" --format "{{ '{{.Names}}' }}"
+  register: authelia_check
+  changed_when: false
+  failed_when: authelia_check.stdout == ""
+  tags: health_check
+
+- name: Check service health endpoints (if accessible)
+  uri:
+    url: "{{ item.url }}"
+    method: GET
+    status_code: [200, 401, 403]  # 401/403 are OK for protected endpoints
+    timeout: 10
+  loop:
+    - { url: "https://traefik.{{ domain }}/ping", name: "Traefik" }
+    - { url: "https://grafana.{{ domain }}/api/health", name: "Grafana" }
+    - { url: "https://auth.{{ domain }}/api/health", name: "Authelia" }
+  register: health_checks
+  ignore_errors: true
+  tags: health_check
+
+- name: Display health check results
+  debug:
+    msg: "{{ item.name }}: {{ '✅ Healthy' if item.status == 200 or item.status == 401 or item.status == 403 else '⚠️  Check failed' }}"
+  loop: "{{ health_checks.results | default([]) }}"
+  when: health_checks is defined
+  tags: health_check
+
+- name: Get disk usage
+  command: df -h / | awk 'NR==2 {print $5}'
+  register: disk_usage
+  changed_when: false
+  tags: health_check
+
+- name: Display disk usage
+  debug:
+    msg: "Disk usage: {{ disk_usage.stdout }}"
+  tags: health_check
+
+- name: Fail if disk usage is too high
+  fail:
+    msg: "Disk usage is too high: {{ disk_usage.stdout }}"
+  when: disk_usage.stdout | regex_replace('%', '') | int > 90
+  tags: health_check

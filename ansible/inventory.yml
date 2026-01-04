@@ -1,0 +1,23 @@
+##############################################################################
+# ANSIBLE INVENTORY
+# Production server configuration
+##############################################################################
+
+all:
+  children:
+    production:
+      hosts:
+        homelab-server:
+          ansible_host: 95.216.176.147
+          ansible_user: deploy
+          ansible_port: 22
+          # SSH key can be set via environment variable ANSIBLE_SSH_PRIVATE_KEY_FILE
+          # or via ansible.cfg, or via command line: -e ansible_ssh_private_key_file=~/.ssh/id_ed25519
+          # Deployment configuration
+          deploy_path: /opt/homelab
+          domain: rodneyops.com
+          tailscale_domain: kooka-lake.ts.net
+          timezone: Europe/Helsinki
+          # Service configuration
+          docker_compose_file: docker-compose.yml
+          backup_retention_days: 7
