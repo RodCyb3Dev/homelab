@@ -112,7 +112,7 @@ services:
       - "traefik.http.routers.traefik.entrypoints=websecure"
       - "traefik.http.routers.traefik.tls.certresolver=cloudflare"
       - "traefik.http.routers.traefik.service=api@internal"
-      - "traefik.http.routers.traefik.middlewares=authelia@docker,security-headers@file"
+      - "traefik.http.routers.traefik.middlewares=authelia@docker,security-headers"
       # Health check
       - "traefik.http.services.traefik.loadbalancer.server.port=8080"
     deploy:
@@ -309,7 +309,7 @@ services:
       - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.tls.certresolver=cloudflare"
-      - "traefik.http.routers.grafana.middlewares=authelia@docker,security-headers@file"
+      - "traefik.http.routers.grafana.middlewares=authelia@docker,security-headers"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
     deploy:
       resources:
@@ -438,7 +438,7 @@ services:
       - "traefik.http.routers.uptime-kuma.rule=Host(`status.${DOMAIN}`)"
       - "traefik.http.routers.uptime-kuma.entrypoints=websecure"
       - "traefik.http.routers.uptime-kuma.tls.certresolver=cloudflare"
-      - "traefik.http.routers.uptime-kuma.middlewares=authelia@docker,security-headers@file"
+      - "traefik.http.routers.uptime-kuma.middlewares=authelia@docker,security-headers"
       - "traefik.http.services.uptime-kuma.loadbalancer.server.port=3001"
     deploy:
       resources:
@@ -467,7 +467,7 @@ services:
       - "traefik.http.routers.gotify.rule=Host(`rodify.${DOMAIN}`)"
       - "traefik.http.routers.gotify.entrypoints=websecure"
       - "traefik.http.routers.gotify.tls.certresolver=cloudflare"
-      - "traefik.http.routers.gotify.middlewares=authelia@docker,security-headers@file"
+      - "traefik.http.routers.gotify.middlewares=authelia@docker,security-headers"
       - "traefik.http.services.gotify.loadbalancer.server.port=80"
     deploy:
       resources:
@@ -857,7 +857,7 @@ services:
       - "traefik.http.routers.navidrome.entrypoints=websecure"
       - "traefik.http.routers.navidrome.tls=true"
       - "traefik.http.routers.navidrome.tls.certresolver=cloudflare"
-      - "traefik.http.routers.navidrome.middlewares=authelia@docker,security-headers@file"
+      - "traefik.http.routers.navidrome.middlewares=authelia@docker,security-headers"
       - "traefik.http.services.navidrome.loadbalancer.server.port=4533"
     depends_on:
       - traefik
@@ -893,7 +893,7 @@ services:
       - "traefik.http.routers.audiobookshelf.entrypoints=websecure"
       - "traefik.http.routers.audiobookshelf.tls=true"
       - "traefik.http.routers.audiobookshelf.tls.certresolver=cloudflare"
-      - "traefik.http.routers.audiobookshelf.middlewares=authelia@docker,security-headers@file"
+      - "traefik.http.routers.audiobookshelf.middlewares=authelia@docker,security-headers"
       - "traefik.http.services.audiobookshelf.loadbalancer.server.port=80"
     depends_on:
       - traefik
