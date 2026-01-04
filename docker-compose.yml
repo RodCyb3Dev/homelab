@@ -717,7 +717,7 @@ services:
   ##############################################################################
 
   readarr:
-    image: lscr.io/linuxserver/readarr:latest
+    image: lscr.io/linuxserver/readarr::0.4.19-nightly
     container_name: readarr
     restart: unless-stopped
     network_mode: "service:gluetun"
