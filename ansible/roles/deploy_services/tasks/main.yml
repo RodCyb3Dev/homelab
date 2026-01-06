@@ -60,13 +60,41 @@
     msg: "Services to deploy: {{ services_list.stdout_lines }}"
   tags: deploy_services
 
-- name: Deploy services with rolling update
+- name: Start Authelia first (required for Traefik middleware)
+  command: "{{ docker_compose_cmd }} up -d --remove-orphans --force-recreate authelia"
+  args:
+    chdir: "{{ deploy_path }}"
+  environment:
+    COMPOSE_FILE: "{{ deploy_path }}/{{ docker_compose_file }}"
+  when: "'authelia' in services_list.stdout_lines"
+  register: authelia_deploy
+  failed_when: false
+  tags: deploy_services
+
+- name: Wait for Authelia to be healthy
+  wait_for:
+    path: "{{ deploy_path }}/config/authelia/configuration.yml"
+    timeout: 60
+  when: "'authelia' in services_list.stdout_lines"
+  tags: deploy_services
+
+- name: Wait for Authelia container to be running
+  wait_for:
+    host: "{{ ansible_host }}"
+    port: 9091
+    delay: 5
+    timeout: 60
+  when: "'authelia' in services_list.stdout_lines"
+  ignore_errors: true
+  tags: deploy_services
+
+- name: Deploy services with rolling update (excluding Authelia which was started first)
   command: "{{ docker_compose_cmd }} up -d --remove-orphans --force-recreate {{ item }}"
   args:
     chdir: "{{ deploy_path }}"
   environment:
     COMPOSE_FILE: "{{ deploy_path }}/{{ docker_compose_file }}"
-  loop: "{{ services_list.stdout_lines }}"
+  loop: "{{ services_list.stdout_lines | reject('equalto', 'authelia') | list }}"
   register: deploy_result
   failed_when: false  # Continue even if some services fail (e.g., storage box mount issues)
   tags: deploy_services

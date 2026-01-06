@@ -12,7 +12,6 @@ global:
 ##############################################################################
 api:
   dashboard: true
-  insecure: false
   debug: false
 
 ##############################################################################
@@ -57,9 +56,12 @@ entryPoints:
   # HTTPS (main entry point)
   websecure:
     address: ":443"
+    transport:
+      respondingTimeouts:
+        readTimeout: "30m"
     http:
       tls:
-        certResolver: letsencrypt
+        certResolver: cloudflare
         domains:
           - main: "rodneyops.com"
             sans:
@@ -92,29 +94,21 @@ entryPoints:
 
 ##############################################################################
 # Certificate Resolvers (Let's Encrypt via HTTP-01 Challenge)
-# Using HTTP-01 because outbound connectivity to Let's Encrypt is blocked
+# Using HTTP-01 challenge which requires port 80 to be accessible
 ##############################################################################
 certificatesResolvers:
   cloudflare:
     acme:
-      caServer: https://acme-v02.api.letsencrypt.org/directory # production (default)
-      # caServer: https://acme-staging-v02.api.letsencrypt.org/directory # staging (testing)
-      email: edward.bezrukov@pm.me
-      storage: acme.json
-      # Use HTTP-01 challenge (Let's Encrypt connects to us on port 80)
-      httpChallenge:
-        entryPoint: web
-
-  #letsencrypt:
-  #  acme:
-  #    caServer: https://acme-v02.api.letsencrypt.org/directory
-  #    # caServer: https://acme-staging-v02.api.letsencrypt.org/directory # staging (testing)
-  #    email: info+ssl@kodeflash.dev
-  #    httpChallenge:
-  #      entryPoint: web
-  #    keyType: EC384
-  #    storage: /letsencrypt/acme.json
-  #    tlsChallenge: true
+      # caServer: https://acme-v02.api.letsencrypt.org/directory # production (default)
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory # staging (testing) - Use staging until rate limit resets
+      email: "edward.bezrukov@pm.me"  # Email for Let's Encrypt registration
+      storage: "/acme.json"
+      keyType: EC384
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
 
 ##############################################################################
 # Providers
@@ -124,7 +118,6 @@ providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
-    # network: public  # Commented out - Docker Compose uses project-prefixed network names
     watch: true
 
   # File provider for dynamic configuration
@@ -211,5 +204,7 @@ ping:
 # Server Transport (Security)
 ##############################################################################
 serversTransport:
-  insecureSkipVerify: false
-  maxIdleConnsPerHost: 200
+  forwardingTimeouts:
+    dialTimeout: 60s
+  insecureSkipVerify: true
+  maxIdleConnsPerHost: 500

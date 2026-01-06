@@ -8,16 +8,15 @@ http:
     ##########################################################################
     # CATCH-ALL ROUTER (404 page)
     ##########################################################################
-    catch-all:
+    # HTTP to HTTPS redirect for all unmatched domains
+    catch-all-http:
       entryPoints:
-        - websecure
+        - web
       rule: "HostRegexp(`{catchall:.*}`)"
-      priority: 1
-      service: noop@internal
+      priority: 1  # Low priority - only catches unmatched HTTP requests
       middlewares:
-        - security-headers
-      tls:
-        certResolver: letsencrypt
+        - redirect-to-https
+      service: noop@internal
 
     ##########################################################################
     # API GATEWAY (if needed in future)
@@ -31,7 +30,7 @@ http:
     #     - auth-chain
     #     - rate-limit-api
     #   tls:
-    #     certResolver: cloudflare
+    #     certResolver: letsencrypt
 
   services:
     ##########################################################################
@@ -46,38 +45,20 @@ http:
     #       interval: "30s"
     #       timeout: "5s"
 
-##############################################################################
-# TCP ROUTERS (if needed for non-HTTP services)
-# Note: In Traefik v3, tcp section cannot be empty. Uncomment when needed.
-##############################################################################
-# tcp:
-#   routers:
-#     # Example: SSH passthrough
-#     # ssh-router:
-#     #   entryPoints:
-#     #     - ssh
-#     #   rule: "HostSNI(`*`)"
-#     #   service: ssh-service
-#
-#   services:
-#     # ssh-service:
-#     #   loadBalancer:
-#     #     servers:
-#     #       - address: "internal-ssh-server:22"
-
-##############################################################################
-# UDP ROUTERS (if needed for VPN, etc.)
-##############################################################################
-# udp:
-#   routers:
-#     wireguard:
-#       entryPoints:
-#         - wireguard
-#       service: wireguard-service
-#
-#   services:
-#     wireguard-service:
-#       loadBalancer:
-#         servers:
-#           - address: "wireguard:51820"
-
+tls:
+  options:
+    default:
+      cipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_AES_128_GCM_SHA256
+        - TLS_AES_256_GCM_SHA384
+        - TLS_CHACHA20_POLY1305_SHA256
+      curvePreferences:
+        - CurveP521
+        - CurveP384
+      minVersion: VersionTLS12
+      sniStrict: true

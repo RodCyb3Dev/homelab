@@ -49,7 +49,7 @@ theme: "dark"
 # TOTP (Time-based One-Time Password - 2FA)
 ##############################################################################
 totp:
-  disable: false
+  disable: false  # Enable TOTP for 2FA
   issuer: "rodneyops.com"
   algorithm: "sha1"
   digits: 6
@@ -86,13 +86,6 @@ authentication_backend:
 
   refresh_interval: "5m"
 
-##############################################################################
-# IDENTITY VALIDATION (JWT Secret for Password Reset)
-##############################################################################
-identity_validation:
-  reset_password:
-    jwt_secret: "file:///run/secrets/authelia_jwt_secret"
-
   # File-based user database (for simplicity)
   file:
     path: "/config/users_database.yml"
@@ -106,6 +99,13 @@ identity_validation:
         parallelism: 4
         key_length: 32
         salt_length: 16
+
+##############################################################################
+# IDENTITY VALIDATION (JWT Secret for Password Reset)
+##############################################################################
+identity_validation:
+  reset_password:
+    jwt_secret: "file:///run/secrets/authelia_jwt_secret"
 
   # LDAP backend (if you want to use LDAP instead)
   # ldap:
@@ -288,7 +288,7 @@ storage:
 # NOTIFIER (Email Notifications)
 ##############################################################################
 notifier:
-  disable_startup_check: false
+  disable_startup_check: true
 
   # SMTP (Email)
   smtp:
