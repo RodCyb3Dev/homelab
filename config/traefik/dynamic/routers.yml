@@ -5,11 +5,6 @@
 # This file only contains monitoring services accessible via Pangolin/Traefik
 ##############################################################################
 
-http:
-  routers:
-    # Monitoring services are configured via Docker labels in docker-compose.monitoring.yml
-    # This file is kept for any additional dynamic routing needs
-
 tls:
   options:
     default:

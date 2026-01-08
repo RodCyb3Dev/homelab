@@ -18,6 +18,13 @@ secrets:
     file: ./config/authelia/secrets/STORAGE_PASSWORD
   STORAGE_ENCRYPTION_KEY:
     file: ./config/authelia/secrets/STORAGE_ENCRYPTION_KEY
+  AUTHELIA_SMTP_USERNAME:
+    file: ./config/authelia/secrets/AUTHELIA_SMTP_USERNAME
+  AUTHELIA_NOTIFIER_SMTP_PASSWORD:
+    file: ./config/authelia/secrets/AUTHELIA_NOTIFIER_SMTP_PASSWORD
+
+volumes:
+  authelia-postgres-data:
 
 services:
   ##############################################################################
@@ -33,7 +40,6 @@ services:
     expose:
       - 6060
     environment:
-      ACQUIRE_FILES: /var/log/traefik/*.log
       COLLECTIONS: crowdsecurity/traefik crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules
       ENROLL_INSTANCE_NAME: pangolin-crowdsec
       ENROLL_TAGS: docker
@@ -45,7 +51,7 @@ services:
       - ./config/pangolin/crowdsec_logs/auth.log:/var/log/auth.log:ro
       - ./config/pangolin/crowdsec_logs/syslog:/var/log/syslog:ro
       - ./config/pangolin/crowdsec_logs:/var/log
-      - ./config/traefik/logs:/var/log/traefik
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     healthcheck:
       test:
         - CMD
@@ -76,6 +82,8 @@ services:
     env_file:
       - .env
     image: fosrl/gerbil:1.0.0
+    networks:
+      - pangolin-proxy
     ports:
       - 51820:51820/udp
       - 443:443
@@ -104,6 +112,8 @@ services:
       - DOMAIN=${DOMAIN}
       - CF_EMAIL_SSL=${CF_EMAIL_SSL}
       - LE_EMAIL_SSL=${LE_EMAIL_SSL}
+    networks:
+      - pangolin-proxy
     volumes:
       - ./config/pangolin:/app/config
       - ./config/pangolin/logs:/app/logs
@@ -118,6 +128,20 @@ services:
         - http://localhost:3001/api/v1/
       timeout: 10s
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # HTTP router - redirects to HTTPS version
+      - "traefik.http.routers.pangolin-http.rule=Host(`ghost.rodneyops.com`)"
+      - "traefik.http.routers.pangolin-http.entrypoints=web"
+      - "traefik.http.routers.pangolin-http.middlewares=redirect-to-https@file"
+      # HTTPS router
+      - "traefik.http.routers.pangolin.rule=Host(`ghost.rodneyops.com`)"
+      - "traefik.http.routers.pangolin.entrypoints=websecure"
+      - "traefik.http.routers.pangolin.tls=true"
+      - "traefik.http.routers.pangolin.tls.certresolver=cloudflare"
+      - "traefik.http.routers.pangolin.middlewares=authelia@docker,security-headers@file"
+      - "traefik.http.services.pangolin.loadbalancer.server.port=3001"
+      - "traefik.http.services.pangolin.loadbalancer.passhostheader=true"
 
   ##############################################################################
   # TRAEFIK - Traefik
@@ -146,8 +170,14 @@ services:
       - ./config/traefik:/etc/traefik:ro
       - ./config/traefik/letsencrypt:/letsencrypt:rw
       - ./config/traefik/cloudflare/acme.json:/cloudflare/acme.json
-      - ./config/traefik/logs:/var/log/traefik
       - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # SECURITY LAYER - Fail2ban
@@ -187,18 +217,21 @@ services:
       - ./config/authelia:/config
     networks:
       - pangolin-proxy
+    depends_on:
+      authelia-postgres:
+        condition: service_healthy
     secrets:
       - JWT_SECRET
       - SESSION_SECRET
       - STORAGE_PASSWORD
       - STORAGE_ENCRYPTION_KEY
+      - AUTHELIA_SMTP_USERNAME
+      - AUTHELIA_NOTIFIER_SMTP_PASSWORD
+    env_file:
+      - .env
     environment:
       TZ: Europe/Helsinki
       AUTHELIA_LOG_LEVEL: 'trace'
-      AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE: '/run/secrets/JWT_SECRET'
-      AUTHELIA_SESSION_SECRET_FILE: '/run/secrets/SESSION_SECRET'
-      AUTHELIA_STORAGE_POSTGRES_PASSWORD_FILE: '/run/secrets/STORAGE_PASSWORD'
-      AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE: '/run/secrets/STORAGE_ENCRYPTION_KEY'
     security_opt:
       - no-new-privileges:true
     ports:
@@ -208,9 +241,15 @@ services:
       disable: true
     labels:
       - 'traefik.enable=true'
+      # HTTP router - redirects to HTTPS version
+      - 'traefik.http.routers.authelia-http.rule=Host(`auth.rodneyops.com`)'
+      - 'traefik.http.routers.authelia-http.entrypoints=web'
+      - 'traefik.http.routers.authelia-http.middlewares=redirect-to-https@file'
+      # HTTPS router
       - 'traefik.http.routers.authelia.rule=Host(`auth.rodneyops.com`)'
-      - 'traefik.http.routers.authelia.entrypoints=https'
+      - 'traefik.http.routers.authelia.entrypoints=websecure'
       - 'traefik.http.routers.authelia.tls=true'
+      - 'traefik.http.routers.authelia.tls.certresolver=cloudflare'
       - 'traefik.http.middlewares.authelia.forwardAuth.address=http://authelia:9091/api/authz/forward-auth'
       - 'traefik.http.middlewares.authelia.forwardAuth.trustForwardHeader=true'
       - 'traefik.http.middlewares.authelia.forwardAuth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email'
@@ -218,6 +257,38 @@ services:
       - 'traefik.http.middlewares.authelia-basic.forwardAuth.trustForwardHeader=true'
       - 'traefik.http.middlewares.authelia-basic.forwardAuth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email'
       - 'traefik.http.services.authelia.loadbalancer.server.port=9091'
+
+  ##############################################################################
+  # SECURITY LAYER - PostgreSQL (for Authelia)
+  ##############################################################################
+
+  authelia-postgres:
+    image: postgres:16-alpine
+    container_name: authelia-postgres
+    networks:
+      - pangolin-proxy
+    environment:
+      POSTGRES_DB: authelia
+      POSTGRES_USER: authelia
+      POSTGRES_PASSWORD_FILE: /run/secrets/STORAGE_PASSWORD
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: Europe/Helsinki
+    secrets:
+      - STORAGE_PASSWORD
+    volumes:
+      - authelia-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authelia -d authelia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # SECURITY LAYER - Redis

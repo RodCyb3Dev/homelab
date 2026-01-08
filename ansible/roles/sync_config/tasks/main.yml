@@ -25,6 +25,7 @@
     - fail2ban/filter.d
     - immich
     - paperless
+    - pangolin
   tags: sync_config
 
 - name: Sync docker-compose.yml (core)
@@ -33,6 +34,7 @@
     dest: "{{ deploy_path }}/docker-compose.yml"
     mode: push
     perms: yes
+  when: compose_file_name | default('') == 'docker-compose.yml' or compose_file_name | default('') == ''
   tags: sync_config
 
 - name: Sync docker-compose.jellyfin.yml
@@ -71,6 +73,15 @@
   when: compose_file_name | default('') == 'docker-compose.pdf.yml' or compose_file_name | default('') == ''
   tags: sync_config
 
+- name: Sync docker-compose.monitoring.yml
+  synchronize:
+    src: "{{ playbook_dir }}/../../docker-compose.monitoring.yml"
+    dest: "{{ deploy_path }}/docker-compose.monitoring.yml"
+    mode: push
+    perms: yes
+  when: compose_file_name | default('') == 'docker-compose.monitoring.yml' or compose_file_name | default('') == ''
+  tags: sync_config
+
 - name: Check which docker-compose files exist
   stat:
     path: "{{ deploy_path }}/{{ item }}"
@@ -81,6 +92,7 @@
     - docker-compose.arr-stack.yml
     - docker-compose.immich.yml
     - docker-compose.pdf.yml
+    - docker-compose.monitoring.yml
   tags: sync_config
 
 - name: Set ownership of docker-compose files
@@ -109,19 +121,36 @@
     group: deploy
     mode: '0644'
   vars:
-    pangolin_smtp_host: "{{ (pangolin_vars | default({})).smtp_host | default(lookup('env', 'PANGOLIN_SMTP_HOST') | default('smtp.protonmail.ch')) }}"
-    pangolin_smtp_port: "{{ (pangolin_vars | default({})).smtp_port | default(lookup('env', 'PANGOLIN_SMTP_PORT') | default(587)) }}"
-    pangolin_smtp_user: "{{ (pangolin_vars | default({})).smtp_user | default(lookup('env', 'PANGOLIN_SMTP_USER') | default('info@kodeflash.dev')) }}"
-    pangolin_smtp_pass: "{{ (pangolin_vars | default({})).smtp_pass | default(lookup('env', 'PANGOLIN_SMTP_PASS') | default('')) }}"
-    pangolin_no_reply_email: "{{ (pangolin_vars | default({})).no_reply_email | default(lookup('env', 'PANGOLIN_NO_REPLY_EMAIL') | default('no-reply@kodeflash.dev')) }}"
-    pangolin_admin_email: "{{ (pangolin_vars | default({})).admin_email | default(lookup('env', 'PANGOLIN_ADMIN_EMAIL') | default('rodney@kodeflash.dev')) }}"
-    pangolin_admin_password: "{{ (pangolin_vars | default({})).admin_password | default(lookup('env', 'PANGOLIN_ADMIN_PASSWORD') | default('')) }}"
+    _smtp_host: "{{ lookup('env', 'SMTP_HOST') | default(vault_smtp_host | default(''), true) }}"
+    pangolin_smtp_host: "{{ (_smtp_host | length > 0) | ternary(_smtp_host, 'smtp.protonmail.ch') }}"
+    _smtp_port: "{{ lookup('env', 'SMTP_PORT') | default(vault_smtp_port | default(''), true) }}"
+    pangolin_smtp_port: "{{ (_smtp_port | length > 0) | ternary(_smtp_port | int, 587) }}"
+    _smtp_user: "{{ lookup('env', 'SMTP_USER') | default(vault_smtp_username | default(''), true) }}"
+    pangolin_smtp_user: "{{ (_smtp_user | length > 0) | ternary(_smtp_user, 'info@kodeflash.dev') }}"
+    pangolin_smtp_pass: "{{ lookup('env', 'SMTP_PASSWORD') | default(vault_smtp_password | default(''), true) }}"
+    _no_reply: "{{ lookup('env', 'NO_REPLY_EMAIL') | default(vault_no_reply_email | default(''), true) }}"
+    pangolin_no_reply_email: "{{ (_no_reply | length > 0) | ternary(_no_reply, 'no-reply@kodeflash.dev') }}"
+    _admin_email: "{{ lookup('env', 'PANGOLIN_ADMIN_EMAIL') | default(vault_pangolin_admin_email | default(''), true) }}"
+    pangolin_admin_email: "{{ (_admin_email | length > 0) | ternary(_admin_email, 'rodney@kodeflash.dev') }}"
+    pangolin_admin_password: "{{ lookup('env', 'PANGOLIN_ADMIN_PASSWORD') | default(vault_pangolin_admin_password | default(''), true) }}"
+  no_log: false
+  tags: sync_config
+
+- name: Template Traefik middlewares.yml (with CrowdSec API key from vault)
+  template:
+    src: middlewares.yml.j2
+    dest: "{{ deploy_path }}/config/traefik/dynamic/middlewares.yml"
+    owner: deploy
+    group: deploy
+    mode: '0644'
+  vars:
+    crowdsec_bouncer_api_key: "{{ lookup('env', 'CROWDSEC_BOUNCER_KEY') | default(vault_crowdsec_bouncer_key | default('wwheoo2x/Mhk0p/ZW7nKbQl94Zkha1Ij/1jrEr3b2KQ')) }}"
   no_log: true
   tags: sync_config
 
 - name: Sync configuration files (excluding secrets and runtime data)
   synchronize:
-    src: "{{ playbook_dir }}/../config/"
+    src: "{{ inventory_dir }}/../config/"
     dest: "{{ deploy_path }}/config/"
     mode: push
     perms: yes
@@ -140,6 +169,7 @@
       - "--exclude=*.pem"
       - "--exclude=*.crt"
       - "--exclude=pangolin/config.yml"
+      - "--exclude=traefik/dynamic/middlewares.yml"
       - "--update"
   tags: sync_config
 

@@ -24,10 +24,15 @@ server:
 # LOGGING
 ##############################################################################
 log:
-  level: "info"
-  format: "text"
-  file_path: ""
-  keep_stdout: true
+  level: "debug"
+  ## Format the logs are written as: json, text.
+  # format: json
+
+  ## File path where the logs will be written. If not set logs are written to stdout.
+  # file_path: /config/authelia.log
+
+  ## Whether to also log to stdout when a log_file_path is defined.
+  # keep_stdout: false
 
 ##############################################################################
 # TELEMETRY
@@ -49,9 +54,9 @@ theme: "dark"
 # TOTP (Time-based One-Time Password - 2FA)
 ##############################################################################
 totp:
-  disable: true
-  issuer: "rodneyops.com"
-  algorithm: "sha1"
+  disable: false
+  issuer: authelia.com
+  algorithm: sha1
   digits: 6
   period: 30
   skew: 1
@@ -60,12 +65,12 @@ totp:
 ##############################################################################
 # WEBAUTHN (Hardware Keys - Optional)
 ##############################################################################
-# webauthn:
-#   disable: false
-#   display_name: 'Homelab'
-#   attestation_conveyance_preference: 'indirect'
-#   user_verification: 'preferred'
-#   timeout: '60s'
+webauthn:
+  disable: false
+  display_name: 'Homelab'
+  attestation_conveyance_preference: 'indirect'
+  timeout: '60s'
+  user_verification: preferred
 
 ##############################################################################
 # DUO (Push Notifications - Optional)
@@ -82,14 +87,17 @@ totp:
 authentication_backend:
   password_reset:
     disable: false
-    custom_url: ""
+    custom_url: ''
 
   refresh_interval: "5m"
 
   # File-based user database (for simplicity)
   file:
-    path: "/config/users_database.yml"
+    path: /config/users_database.yml
     watch: true
+    search:
+      email: false
+      case_insensitive: false
     password:
       algorithm: "argon2"
       argon2:
@@ -105,7 +113,7 @@ authentication_backend:
 ##############################################################################
 identity_validation:
   reset_password:
-    jwt_secret: "file:///run/secrets/authelia_jwt_secret"
+    jwt_secret: "file:///run/secrets/JWT_SECRET"
 
   # LDAP backend (if you want to use LDAP instead)
   # ldap:
@@ -215,9 +223,7 @@ access_control:
 # SESSION
 ##############################################################################
 session:
-  secret: "file:///run/secrets/authelia_session_secret"
-  name: "authelia_session"
-  same_site: "lax"
+  secret: "file:///run/secrets/SESSION_SECRET"
   expiration: "1h"
   inactivity: "5m"
   remember_me: "1M"
@@ -253,36 +259,16 @@ regulation:
 # STORAGE
 ##############################################################################
 storage:
-  encryption_key: "file:///run/secrets/authelia_storage_encryption_key"
-
-  # Local SQLite database
-  local:
-    path: "/var/lib/authelia/db.sqlite3"
+  encryption_key: "file:///run/secrets/STORAGE_ENCRYPTION_KEY"
 
   # PostgreSQL backend (recommended for production)
-  # postgres:
-  #   address: 'tcp://postgres:5432'
-  #   database: 'authelia'
-  #   schema: 'public'
-  #   username: 'authelia'
-  #   password: 'authelia_password'
-  #   timeout: '5s'
-  #   tls:
-  #     server_name: ''
-  #     skip_verify: false
-  #     minimum_version: 'TLS1.2'
-
-  # MySQL backend
-  # mysql:
-  #   address: 'tcp://mysql:3306'
-  #   database: 'authelia'
-  #   username: 'authelia'
-  #   password: 'authelia_password'
-  #   timeout: '5s'
-  #   tls:
-  #     server_name: ''
-  #     skip_verify: false
-  #     minimum_version: 'TLS1.2'
+  postgres:
+    address: tcp://authelia-postgres:5432
+    database: authelia
+    schema: public
+    username: authelia
+    password: "file:///run/secrets/STORAGE_PASSWORD"
+    timeout: '5s'
 
 ##############################################################################
 # NOTIFIER (Email Notifications)
@@ -294,10 +280,10 @@ notifier:
   smtp:
     address: "smtp://smtp.protonmail.ch:587"
     timeout: "5s"
-    username: "no-reply@kodeflash.dev"
-    password: "${AUTHELIA_NOTIFIER_SMTP_PASSWORD}"
-    sender: "Authelia <no-reply@rodneyops.com>"
-    identifier: "rodneyops.com"
+    username: no-reply@kodeflash.dev # "file:///run/secrets/AUTHELIA_SMTP_USERNAME"
+    password: B6MTPP2AUPLY821W # "file:///run/secrets/AUTHELIA_NOTIFIER_SMTP_PASSWORD"
+    sender: "Authelia <no-reply@kodeflash.dev>"
+    identifier: "kodeflash.dev"
     subject: "[Authelia] {title}"
     startup_check_address: "no-reply@kodeflash.dev"
     disable_require_tls: false

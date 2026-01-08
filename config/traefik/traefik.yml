@@ -11,24 +11,19 @@ global:
 # API and Dashboard
 ##############################################################################
 api:
-  dashboard: true
+  dashboard: false
   debug: false
+  insecure: false
 
 ##############################################################################
 # Entry Points (Ports)
 ##############################################################################
 entryPoints:
   # HTTP (main entry point)
-  # Note: Tailscale Serve handles TLS termination and proxies HTTP to this port
-  # No redirect needed since Tailscale Serve already handles HTTPS
+  # Note: HTTP to HTTPS redirect is handled per-router to avoid insecure redirect patterns
+  # See: https://support.securityscorecard.com/hc/en-us/articles/360058513252-Insecure-HTTPS-redirect-pattern
   web:
     address: ":80"
-    http:
-      redirections:
-        entryPoint:
-          permanent: true
-          scheme: https
-          to: websecure
 
   # HTTPS (main entry point)
   # Note: Tailscale Serve handles TLS termination and proxies HTTP to Traefik
@@ -40,8 +35,6 @@ entryPoints:
       respondingTimeouts:
         readTimeout: "30m"
     http:
-      middlewares:
-        - crowdsec@file
       tls:
         certResolver: cloudflare
 
@@ -72,9 +65,12 @@ certificatesResolvers:
 # Providers
 ##############################################################################
 providers:
-  http:
-    endpoint: http://pangolin:3001/api/v1/traefik
-    pollInterval: 5s
+  # Docker provider for service discovery via labels
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: pangolin-proxy
+    watch: true
 
   # File provider for dynamic configuration
   file:
@@ -83,18 +79,17 @@ providers:
 
 ##############################################################################
 # Logs
+# Traefik logs to stdout/stderr (Docker best practice)
+# Docker handles log rotation and compression automatically via logging driver
+# Access logs via: docker logs traefik
 ##############################################################################
 log:
   level: INFO
-  filePath: "/var/log/traefik/traefik.log"
   format: json
-  maxSize: 100
-  maxBackups: 3
-  maxAge: 30
-  compress: true
+  # Logs to stdout (captured by Docker)
+  # Docker automatically rotates and compresses logs based on docker-compose.yml logging options
 
 accessLog:
-  filePath: "/var/log/traefik/access.log"
   format: json
   bufferingSize: 100
   filters:
@@ -110,6 +105,7 @@ accessLog:
         User-Agent: keep
         Authorization: drop
         Content-Type: keep
+  # Access logs to stdout (captured by Docker)
 
 ##############################################################################
 # Metrics (Prometheus)

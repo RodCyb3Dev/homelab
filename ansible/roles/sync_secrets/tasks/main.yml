@@ -29,11 +29,12 @@
       CF_API_TOKEN: "{{ lookup('env', 'CF_API_TOKEN') | default(vault_cf_api_token | default('')) }}"
       CF_API_EMAIL: "{{ lookup('env', 'CF_API_EMAIL') | default(vault_cf_api_email | default('')) }}"
       LE_EMAIL_SSL: "{{ lookup('env', 'LE_EMAIL_SSL') | default(vault_le_email_ssl | default('')) }}"
-      AUTHELIA_STORAGE_POSTGRESQL_PASSWORD: "{{ lookup('env', 'AUTHELIA_STORAGE_POSTGRESQL_PASSWORD') | default(vault_authelia_storage_postgresql_password | default('')) }}"
+      AUTHELIA_STORAGE_POSTGRES_PASSWORD: "{{ lookup('env', 'AUTHELIA_STORAGE_POSTGRES_PASSWORD') | default(vault_authelia_storage_postgres_password | default('')) }}"
       AUTHELIA_JWT_SECRET: "{{ lookup('env', 'AUTHELIA_JWT_SECRET') | default(vault_authelia_jwt_secret | default('')) }}"
       AUTHELIA_STORAGE_ENCRYPTION_KEY: "{{ lookup('env', 'AUTHELIA_STORAGE_ENCRYPTION_KEY') | default(vault_authelia_storage_encryption_key | default('')) }}"
       AUTHELIA_SESSION_SECRET: "{{ lookup('env', 'AUTHELIA_SESSION_SECRET') | default(vault_authelia_session_secret | default('')) }}"
       AUTHELIA_NOTIFIER_SMTP_PASSWORD: "{{ lookup('env', 'AUTHELIA_NOTIFIER_SMTP_PASSWORD') | default(vault_authelia_notifier_smtp_password | default('')) }}"
+      AUTHELIA_SMTP_USERNAME: "{{ lookup('env', 'AUTHELIA_SMTP_USERNAME') | default(vault_authelia_smtp_username | default(lookup('env', 'SMTP_USERNAME') | default(vault_smtp_username | default('')))) }}"
       BACKUP_ENCRYPTION_KEY: "{{ lookup('env', 'BACKUP_ENCRYPTION_KEY') | default(vault_backup_encryption_key | default('')) }}"
       SMTP_HOST: "{{ lookup('env', 'SMTP_HOST') | default(vault_smtp_host | default('')) }}"
       SMTP_PORT: "{{ lookup('env', 'SMTP_PORT') | default(vault_smtp_port | default('')) }}"
@@ -63,6 +64,11 @@
       PANGOLIN_ADMIN_PASSWORD: "{{ lookup('env', 'PANGOLIN_ADMIN_PASSWORD') | default(vault_pangolin_admin_password | default('')) }}"
       ADMIN_EMAIL: "{{ lookup('env', 'ADMIN_EMAIL') | default(vault_admin_email | default('rodney@kodeflash.dev')) }}"
       ADMIN_PASSWORD: "{{ lookup('env', 'ADMIN_PASSWORD') | default(vault_admin_password | default('')) }}"
+      # Gerbil configuration
+      GERBIL_REACHABLE_URL: "{{ lookup('env', 'GERBIL_REACHABLE_URL') | default(vault_gerbil_reachable_url | default('')) }}"
+      GERBIL_KEY_PATH: "{{ lookup('env', 'GERBIL_KEY_PATH') | default(vault_gerbil_key_path | default('')) }}"
+      GERBIL_CONFIG_URL: "{{ lookup('env', 'GERBIL_CONFIG_URL') | default(vault_gerbil_config_url | default('')) }}"
+      GERBIL_BANDWIDTH_URL: "{{ lookup('env', 'GERBIL_BANDWIDTH_URL') | default(vault_gerbil_bandwidth_url | default('')) }}"
 
   no_log: true
   tags: sync_secrets
@@ -79,30 +85,94 @@
   no_log: true
   tags: sync_secrets
 
-- name: Ensure Authelia secret files exist
+- name: Ensure Authelia secrets directory exists
   file:
-    path: "{{ deploy_path }}/config/authelia/{{ item }}"
-    state: touch
+    path: "{{ deploy_path }}/config/authelia/secrets"
+    state: directory
+    owner: deploy
+    group: deploy
+    mode: '0700'
+  tags: sync_secrets
+
+- name: Create Authelia JWT_SECRET file from vault
+  copy:
+    content: "{{ secrets.AUTHELIA_JWT_SECRET | default('') }}"
+    dest: "{{ deploy_path }}/config/authelia/secrets/JWT_SECRET"
     owner: deploy
     group: deploy
     mode: '0600'
-  loop:
-    - jwt_secret.txt
-    - session_secret.txt
-    - storage_encryption_key.txt
+  when: secrets.AUTHELIA_JWT_SECRET | default('') != ''
+  no_log: true
   tags: sync_secrets
 
-- name: Generate Authelia secrets if files are empty
+- name: Create Authelia SESSION_SECRET file from vault
+  copy:
+    content: "{{ secrets.AUTHELIA_SESSION_SECRET | default('') }}"
+    dest: "{{ deploy_path }}/config/authelia/secrets/SESSION_SECRET"
+    owner: deploy
+    group: deploy
+    mode: '0600'
+  when: secrets.AUTHELIA_SESSION_SECRET | default('') != ''
+  no_log: true
+  tags: sync_secrets
+
+- name: Create Authelia STORAGE_PASSWORD file from vault
+  copy:
+    content: "{{ secrets.AUTHELIA_STORAGE_POSTGRES_PASSWORD | default('') }}"
+    dest: "{{ deploy_path }}/config/authelia/secrets/STORAGE_PASSWORD"
+    owner: deploy
+    group: deploy
+    mode: '0600'
+  when: secrets.AUTHELIA_STORAGE_POSTGRES_PASSWORD | default('') != ''
+  no_log: true
+  tags: sync_secrets
+
+- name: Create Authelia STORAGE_ENCRYPTION_KEY file from vault
+  copy:
+    content: "{{ secrets.AUTHELIA_STORAGE_ENCRYPTION_KEY | default('') }}"
+    dest: "{{ deploy_path }}/config/authelia/secrets/STORAGE_ENCRYPTION_KEY"
+    owner: deploy
+    group: deploy
+    mode: '0600'
+  when: secrets.AUTHELIA_STORAGE_ENCRYPTION_KEY | default('') != ''
+  no_log: true
+  tags: sync_secrets
+
+- name: Create Authelia AUTHELIA_SMTP_USERNAME file from vault
+  copy:
+    content: "{{ secrets.AUTHELIA_SMTP_USERNAME | default('') }}"
+    dest: "{{ deploy_path }}/config/authelia/secrets/AUTHELIA_SMTP_USERNAME"
+    owner: deploy
+    group: deploy
+    mode: '0600'
+  when: secrets.AUTHELIA_SMTP_USERNAME | default('') != ''
+  no_log: true
+  tags: sync_secrets
+
+- name: Create Authelia AUTHELIA_NOTIFIER_SMTP_PASSWORD file from vault
+  copy:
+    content: "{{ secrets.AUTHELIA_NOTIFIER_SMTP_PASSWORD | default('') }}"
+    dest: "{{ deploy_path }}/config/authelia/secrets/AUTHELIA_NOTIFIER_SMTP_PASSWORD"
+    owner: deploy
+    group: deploy
+    mode: '0600'
+  when: secrets.AUTHELIA_NOTIFIER_SMTP_PASSWORD | default('') != ''
+  no_log: true
+  tags: sync_secrets
+
+- name: Generate Authelia secrets if vault values are empty
   shell: |
-    if [ ! -s "{{ deploy_path }}/config/authelia/{{ item }}" ]; then
-      openssl rand -hex 32 > "{{ deploy_path }}/config/authelia/{{ item }}"
-      chmod 600 "{{ deploy_path }}/config/authelia/{{ item }}"
-      chown deploy:deploy "{{ deploy_path }}/config/authelia/{{ item }}"
+    if [ ! -s "{{ deploy_path }}/config/authelia/secrets/{{ item.name }}" ]; then
+      openssl rand -hex 32 > "{{ deploy_path }}/config/authelia/secrets/{{ item.name }}"
+      chmod 600 "{{ deploy_path }}/config/authelia/secrets/{{ item.name }}"
+      chown deploy:deploy "{{ deploy_path }}/config/authelia/secrets/{{ item.name }}"
     fi
   loop:
-    - jwt_secret.txt
-    - session_secret.txt
-    - storage_encryption_key.txt
+    - { name: "JWT_SECRET", vault_key: "AUTHELIA_JWT_SECRET" }
+    - { name: "SESSION_SECRET", vault_key: "AUTHELIA_SESSION_SECRET" }
+    - { name: "STORAGE_PASSWORD", vault_key: "AUTHELIA_STORAGE_POSTGRES_PASSWORD" }
+    - { name: "STORAGE_ENCRYPTION_KEY", vault_key: "AUTHELIA_STORAGE_ENCRYPTION_KEY" }
+  when: secrets[item.vault_key] | default('') == ''
   changed_when: false
   no_log: true
   tags: sync_secrets

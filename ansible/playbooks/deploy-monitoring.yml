@@ -1,0 +1,67 @@
+##############################################################################
+# ANSIBLE PLAYBOOK - Deploy Monitoring Stack
+# Deploys Prometheus, Grafana, Loki, Promtail, Node Exporter, cAdvisor, Uptime Kuma, Gotify, Dockge
+##############################################################################
+
+---
+- name: Deploy Monitoring Stack
+  hosts: production
+  become: yes
+  become_user: root
+  gather_facts: yes
+  
+  vars_files:
+    - vault.yml
+  
+  vars:
+    deploy_path: "{{ hostvars[inventory_hostname]['deploy_path'] | default('/opt/homelab') }}"
+    domain: "{{ hostvars[inventory_hostname]['domain'] | default('rodneyops.com') }}"
+    timezone: "{{ hostvars[inventory_hostname]['timezone'] | default('Europe/Helsinki') }}"
+    compose_file_name: "docker-compose.monitoring.yml"
+    compose_file_path: "{{ deploy_path }}/{{ compose_file_name }}"
+    compose_file_requires_tailscale: false
+
+  pre_tasks:
+    - name: Ensure deployment directory exists
+      file:
+        path: "{{ deploy_path }}"
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: '0755'
+
+    - name: Check disk space
+      shell: df -h / | awk 'NR==2 {print $5}' | sed 's/%//'
+      register: disk_usage
+      changed_when: false
+      failed_when: disk_usage.stdout | int > 90
+      tags: always
+
+  roles:
+    - role: sync_config
+      tags: ['config', 'sync']
+
+    - role: sync_secrets
+      tags: ['secrets', 'sync']
+
+    - role: deploy_compose
+      tags: ['deploy', 'services']
+
+    - role: health_check
+      tags: ['health', 'verify']
+
+  post_tasks:
+    - name: Cleanup old Docker images
+      command: docker image prune -f
+      changed_when: false
+      tags: cleanup
+
+    - name: Display deployment summary
+      debug:
+        msg:
+          - "✅ Monitoring stack deployment completed successfully!"
+          - "📊 Services: {{ deploy_path }}/{{ compose_file_name }}"
+          - "🌐 Domain: {{ domain }}"
+          - "⏰ Timezone: {{ timezone }}"
+          - "💡 Access Grafana at: https://grafana.{{ domain }}"
+          - "💡 Access Uptime Kuma at: https://status.{{ domain }}"

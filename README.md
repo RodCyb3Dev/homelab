@@ -563,12 +563,182 @@ make ps
 docker stats
 ```
 
+## 📋 Logging & Log Access
+
+### Log Architecture
+
+All services follow Docker best practices by logging to **stdout/stderr**, which Docker captures automatically. This provides:
+
+- ✅ **Automatic log rotation** - Docker handles rotation based on size
+- ✅ **Automatic compression** - Logs are compressed when rotated
+- ✅ **Centralized access** - All logs accessible via `docker logs`
+- ✅ **Monitoring integration** - Promtail automatically collects logs via Docker socket
+
+### Docker Log Configuration
+
+Docker log rotation is configured per-service in `docker-compose.yml`:
+
+```yaml
+logging:
+  driver: "json-file"
+  options:
+    max-size: "10m"      # Rotate when log reaches 10MB
+    max-file: "3"        # Keep 3 rotated files (30MB total)
+    compress: "true"     # Compress rotated logs (gzip)
+```
+
+**Default Docker daemon settings** (if not specified per-service):
+- Location: `/var/lib/docker/containers/<container-id>/<container-id>-json.log`
+- Rotation: Managed by Docker daemon
+- Compression: Enabled by default
+
+### Accessing Logs
+
+#### View Logs via Docker CLI
+
+```bash
+# View Traefik logs (last 100 lines)
+docker logs traefik --tail 100
+
+# Follow Traefik logs in real-time
+docker logs traefik -f
+
+# View logs with timestamps
+docker logs traefik -t
+
+# View logs from last 10 minutes
+docker logs traefik --since 10m
+
+# View logs between timestamps
+docker logs traefik --since 2024-01-08T06:00:00 --until 2024-01-08T07:00:00
+
+# View all service logs
+docker compose logs
+
+# View specific service logs
+docker compose logs traefik
+docker compose logs authelia
+docker compose logs crowdsec
+```
+
+#### View Logs via Grafana/Loki
+
+1. **Access Grafana**: https://grafana.rodneyops.com
+2. **Navigate to Explore** (compass icon)
+3. **Select Loki** as data source
+4. **Query logs**:
+   ```
+   # All Traefik logs
+   {container="traefik"}
+   
+   # Traefik error logs
+   {container="traefik"} |= "error"
+   
+   # Traefik access logs (JSON format)
+   {container="traefik"} | json
+   
+   # All service logs
+   {job="containers"}
+   
+   # Filter by log level
+   {container="traefik"} | json | level="error"
+   ```
+
+#### View Logs via Promtail (if running locally)
+
+```bash
+# Check Promtail targets
+curl http://localhost:9080/targets
+
+# View Promtail metrics
+curl http://localhost:9080/metrics
+```
+
+### Log Locations
+
+**Docker Log Files** (on host):
+```bash
+# Docker container logs location
+/var/lib/docker/containers/<container-id>/<container-id>-json.log
+
+# Find Traefik container log file
+docker inspect traefik | grep LogPath
+
+# View log file directly (if needed)
+sudo tail -f /var/lib/docker/containers/$(docker inspect -f '{{.Id}}' traefik)/$(docker inspect -f '{{.Id}}' traefik)-json.log
+```
+
+**System Logs** (for CrowdSec/Fail2ban):
+- `/var/log/auth.log` - Authentication attempts
+- `/var/log/syslog` - System logs
+- Mounted at: `./config/pangolin/crowdsec_logs/` (for CrowdSec)
+
+### Log Rotation Best Practices
+
+Docker automatically handles log rotation based on the configuration:
+
+1. **Per-Service Configuration** (recommended):
+   ```yaml
+   logging:
+     driver: "json-file"
+     options:
+       max-size: "10m"      # Rotate at 10MB
+       max-file: "3"        # Keep 3 files (30MB total)
+       compress: "true"     # Compress old logs
+   ```
+
+2. **Docker Daemon Configuration** (global fallback):
+   Edit `/etc/docker/daemon.json`:
+   ```json
+   {
+     "log-driver": "json-file",
+     "log-opts": {
+       "max-size": "10m",
+       "max-file": "3",
+       "compress": "true"
+     }
+   }
+   ```
+   Then restart Docker: `sudo systemctl restart docker`
+
+### Log Monitoring
+
+- **Promtail** automatically collects all container logs via Docker socket
+- **Loki** stores logs for querying and analysis
+- **Grafana** provides visualization and alerting
+- **CrowdSec** monitors logs for security threats
+
+### Troubleshooting Log Issues
+
+```bash
+# Check if logs are being written
+docker logs traefik --tail 10
+
+# Check Docker log driver
+docker inspect traefik | grep -A 10 LogConfig
+
+# Check log file size
+docker inspect traefik | grep LogPath
+sudo ls -lh $(docker inspect -f '{{.LogPath}}' traefik)
+
+# Check Promtail is collecting logs
+docker logs promtail --tail 50 | grep traefik
+
+# Check Loki is receiving logs
+curl http://localhost:3100/ready
+```
+
 ## 🐛 Troubleshooting
 
 ### Service Won't Start
 
 ```bash
 # Check logs
+docker logs traefik --tail 100
+docker logs crowdsec --tail 100
+docker logs authelia --tail 100
+
+# Or use make commands (if available)
 make logs-traefik
 make logs-crowdsec
 make logs-authelia

@@ -1,39 +1,38 @@
 ##############################################################################
 # TRAEFIK - Dynamic Middleware Configuration
 # Security headers, rate limiting, and protection middlewares
+# This file is templated by Ansible. Do not edit directly.
 ##############################################################################
 
 http:
   middlewares:
     ##########################################################################
     # CROWDSEC - Threat Intelligence & IDS/IPS
-    # Note: CrowdSec plugin requires Traefik to be built with the plugin
-    # For now, CrowdSec protection is handled at the service level via bouncer
     ##########################################################################
-    # crowdsec:
-    #   plugin:
-    #     crowdsec:
-    #       clientTrustedIPs:
-    #         - 10.0.0.0/8
-    #         - 172.16.0.0/12
-    #         - 192.168.0.0/16
-    #         - 100.89.137.0/20
-    #       crowdsecAppsecEnabled: true
-    #       crowdsecAppsecFailureBlock: true
-    #       crowdsecAppsecHost: crowdsec:7422
-    #       crowdsecAppsecUnreachableBlock: true
-    #       crowdsecLapiHost: crowdsec:8080
-    #       crowdsecLapiKey: {{ crowdsec_bouncer_api_key | default('') }}
-    #       crowdsecLapiScheme: http
-    #       crowdsecMode: live
-    #       defaultDecisionSeconds: 15
-    #       enabled: true
-    #       forwardedHeadersTrustedIPs:
-    #         - 0.0.0.0/0
-    #       httpTimeoutSeconds: 10
-    #       logLevel: INFO
-    #       updateIntervalSeconds: 15
-    #       updateMaxFailure: 0
+    crowdsec:
+      plugin:
+        crowdsec:
+          clientTrustedIPs:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+            - 192.168.0.0/16
+            - 100.89.137.0/20
+          crowdsecAppsecEnabled: true
+          crowdsecAppsecFailureBlock: true
+          crowdsecAppsecHost: crowdsec:7422
+          crowdsecAppsecUnreachableBlock: true
+          crowdsecLapiHost: crowdsec:8080
+          crowdsecLapiKey: {{ crowdsec_bouncer_api_key | default('wwheoo2x/Mhk0p/ZW7nKbQl94Zkha1Ij/1jrEr3b2KQ') }}
+          crowdsecLapiScheme: http
+          crowdsecMode: live
+          defaultDecisionSeconds: 15
+          enabled: true
+          forwardedHeadersTrustedIPs:
+            - 0.0.0.0/0
+          httpTimeoutSeconds: 10
+          logLevel: INFO
+          updateIntervalSeconds: 15
+          updateMaxFailure: 0
 
     ##########################################################################
     # SECURITY HEADERS
@@ -278,3 +277,4 @@ tcp:
           - "127.0.0.1/32"
           - "172.20.0.0/16"
           - "100.64.0.0/10"
+

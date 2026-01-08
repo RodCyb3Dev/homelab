@@ -4,20 +4,17 @@
 ##############################################################################
 
 ##############################################################################
-# TRAEFIK LOGS
+# DOCKER CONTAINER LOGS (Primary - Best Practice)
+# Traefik logs to stdout/stderr, captured via Docker
 ##############################################################################
 ---
-filenames:
-  - /var/log/traefik/access.log
+source: docker
+container_name:
+  - traefik
+  - authelia
+  - crowdsec
 labels:
-  type: traefik
-
----
-filenames:
-  - /var/log/traefik/traefik.log
-labels:
-  type: traefik
-
+  type: docker
 
 ##############################################################################
 # SYSTEM LOGS
@@ -34,19 +31,6 @@ filenames:
   - /var/log/syslog
 labels:
   type: syslog
-
-
-##############################################################################
-# DOCKER LOGS (if journald is used)
-##############################################################################
----
-source: docker
-container_name:
-  - traefik
-  - authelia
-  - crowdsec
-labels:
-  type: docker
 
 ##############################################################################
 # CUSTOM APPLICATION LOGS (if needed)

@@ -73,7 +73,7 @@
   tags: deploy_compose
 
 - name: Deploy services with rolling update
-  command: "{{ docker_compose_cmd }} -f {{ compose_file_path }} up -d --remove-orphans --force-recreate {{ item }}"
+  command: "{{ docker_compose_cmd }} -f {{ compose_file_path }} up -d --force-recreate {{ item }}"
   args:
     chdir: "{{ deploy_path }}"
   loop: "{{ services_list.stdout_lines }}"

@@ -31,30 +31,8 @@ scrape_configs:
           __path__: /var/log/*.log
 
   ##########################################################################
-  # TRAEFIK LOGS
-  ##########################################################################
-  - job_name: traefik
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: traefik
-          service: traefik
-          __path__: /var/log/traefik/*.log
-    pipeline_stages:
-      - json:
-          expressions:
-            level: level
-            msg: msg
-            time: time
-      - labels:
-          level:
-      - timestamp:
-          source: time
-          format: RFC3339Nano
-
-  ##########################################################################
-  # DOCKER CONTAINER LOGS
+  # DOCKER CONTAINER LOGS (Primary - Best Practice)
+  # Traefik and other services log to stdout/stderr, captured via Docker
   ##########################################################################
   - job_name: containers
     docker_sd_configs:
