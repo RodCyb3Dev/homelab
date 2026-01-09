@@ -192,12 +192,11 @@ services:
       AUTHELIA_LOG_LEVEL: 'info'
     security_opt:
       - no-new-privileges:true
-    read_only: true
+    # Note: Authelia needs to write /app/.healthcheck.env for healthcheck metadata
+    # Removed read_only restriction to allow healthcheck file writes
     tmpfs:
       - /tmp
       - /var/tmp
-      - /app/.healthcheck.env
-    # Note: Authelia needs to write healthcheck metadata
     # Removed user restriction to allow proper initialization
     expose:
       - 9091
