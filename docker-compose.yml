@@ -196,7 +196,9 @@ services:
     tmpfs:
       - /tmp
       - /var/tmp
-    user: "1000:1000"
+      - /app/.healthcheck.env
+    # Note: Authelia needs to write healthcheck metadata
+    # Removed user restriction to allow proper initialization
     expose:
       - 9091
       - 9959  # Metrics endpoint for Prometheus
