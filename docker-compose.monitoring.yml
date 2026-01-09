@@ -424,14 +424,14 @@ services:
     tmpfs:
       - /tmp
       - /var/tmp
-      - /opt/omd/sites/${CHECKMK_SITE_ID:-homelab}/tmp:uid=1000,gid=1000
-    user: "1000:1000"
+    # Note: Checkmk requires root to initialize the site, but runs services as non-root
+    # The Checkmk image handles privilege dropping internally
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/${CHECKMK_SITE_ID:-homelab}/check_mk/"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 120s
     deploy:
       resources:
         limits:
