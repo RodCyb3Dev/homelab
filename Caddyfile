@@ -161,7 +161,14 @@ checkmk.rodneyops.com {
         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
     }
 
-    reverse_proxy checkmk:8000
+    # Checkmk web UI is at /homelab/check_mk/ (site ID is 'homelab')
+    reverse_proxy checkmk:8000 {
+        # Preserve the original request path
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
 
     header {
         Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
