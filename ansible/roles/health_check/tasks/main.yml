@@ -16,11 +16,11 @@
   changed_when: false
   tags: health_check
 
-- name: Verify Traefik is running
-  command: docker ps --filter "name=traefik" --filter "status=running" --format "{{ '{{.Names}}' }}"
-  register: traefik_check
+- name: Verify Caddy is running
+  command: docker ps --filter "name=caddy" --filter "status=running" --format "{{ '{{.Names}}' }}"
+  register: caddy_check
   changed_when: false
-  failed_when: traefik_check.stdout == ""
+  failed_when: caddy_check.stdout == ""
   tags: health_check
 
 - name: Verify CrowdSec is running
@@ -57,7 +57,7 @@
     timeout: 10
     validate_certs: false  # Allow checking even if certificates aren't ready yet
   loop:
-    - { url: "https://traefik.{{ domain }}/ping", name: "Traefik" }
+    - { url: "https://auth.{{ domain }}/api/health", name: "Caddy (via Authelia)" }
     - { url: "https://grafana.{{ domain }}/api/health", name: "Grafana" }
     - { url: "https://auth.{{ domain }}/api/health", name: "Authelia" }
   register: health_checks

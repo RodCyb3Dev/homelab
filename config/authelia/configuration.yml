@@ -183,23 +183,26 @@ access_control:
         - "^/api/health$"
         - "^/api/state$"
 
-    # Admin services - require 2FA (Traefik dashboard only, Portainer is Tailscale-only)
-    - domain:
-        - "traefik.rodneyops.com"
-      policy: "two_factor"
-      subject:
-        - ["group:admins"]
-
     # Monitoring services - require 2FA
     - domain:
         - "grafana.rodneyops.com"
         - "status.rodneyops.com"
       policy: "two_factor"
 
-    # Notifications - require authentication
+    # Notifications - Gotify with API bypass
+    # Protect web UI but allow API endpoints (message, version, stream, application, client) to bypass
     - domain:
         - "rodify.rodneyops.com"
-      policy: "one_factor"
+      policy: "bypass"
+      resources:
+        - "^/message([/?].*)?$"  # Allow /message?token=... for sending messages
+        - "^/version$"            # Allow /version for app checks
+        - "^/stream([/?].*)?$"    # Allow /stream?token=... for WebSocket
+        - "^/application([/?].*)?$" # Allow /application endpoints
+        - "^/client([/?].*)?$"    # Allow /client endpoints
+    - domain:
+        - "rodify.rodneyops.com"
+      policy: "one_factor"  # Require authentication for web UI
 
     # Media services - require authentication
     - domain:
@@ -231,7 +234,7 @@ session:
   cookies:
     - domain: "rodneyops.com"
       authelia_url: "https://auth.rodneyops.com"
-      default_redirection_url: "https://grafana.rodneyops.com"
+      default_redirection_url: "https://status.rodneyops.com"
 
   # Redis backend for session storage (recommended for production)
   # redis:
@@ -280,8 +283,8 @@ notifier:
   smtp:
     address: "smtp://smtp.protonmail.ch:587"
     timeout: "5s"
-    username: no-reply@kodeflash.dev # "file:///run/secrets/AUTHELIA_SMTP_USERNAME"
-    password: B6MTPP2AUPLY821W # "file:///run/secrets/AUTHELIA_NOTIFIER_SMTP_PASSWORD"
+    username: "file:///run/secrets/AUTHELIA_SMTP_USERNAME"
+    password: "file:///run/secrets/AUTHELIA_NOTIFIER_SMTP_PASSWORD"
     sender: "Authelia <no-reply@kodeflash.dev>"
     identifier: "kodeflash.dev"
     subject: "[Authelia] {title}"

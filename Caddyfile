@@ -1,0 +1,163 @@
+##############################################################################
+# CADDY - Reverse Proxy Configuration
+# Security & Privacy First - Maximum Security Setup
+##############################################################################
+
+{
+    # Privacy: Disable telemetry and admin endpoint
+    admin off
+
+    # Automatic HTTPS - Caddy will use HTTP-01 challenge by default
+    # For DNS-01 challenge with Cloudflare, use caddy:builder image
+    # and configure: acme_dns cloudflare { env CF_DNS_API_TOKEN_FILE }
+
+    # Email for Let's Encrypt notifications
+    email edward.bezrukov@pm.me
+
+    # Logging
+    # Note: Logs are written to stdout by default in Docker
+    # For Fail2ban, we'll use Docker logs or configure file output
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10MB
+            roll_keep 3
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+##############################################################################
+# AUTHELIA - Authentication Server
+##############################################################################
+
+auth.rodneyops.com {
+    reverse_proxy authelia:9091
+
+    # Security headers
+    header {
+        # HSTS
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+
+        # Prevent clickjacking
+        X-Frame-Options "SAMEORIGIN"
+
+        # Content Security Policy
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
+
+        # Additional security headers
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=()"
+
+        # Remove server identification
+        -Server
+        -X-Powered-By
+    }
+
+    # TLS - Automatic HTTPS with Let's Encrypt (HTTP-01 challenge)
+    # Caddy automatically obtains certificates when domains are specified
+}
+
+##############################################################################
+# MONITORING SERVICES - Protected by Authelia
+##############################################################################
+
+# Grafana - Requires 2FA
+grafana.rodneyops.com {
+    # Forward auth to Authelia
+    forward_auth authelia:9091 {
+        # uri /api/verify?auth=basic
+        uri /api/authz/forward-auth
+        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    }
+
+    reverse_proxy grafana:3000
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Frame-Options "SAMEORIGIN"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+        -X-Powered-By
+    }
+}
+
+# Uptime Kuma - Requires 2FA
+status.rodneyops.com {
+    forward_auth authelia:9091 {
+        uri /api/authz/forward-auth
+        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    }
+
+    reverse_proxy uptime-kuma:3001
+
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Frame-Options "SAMEORIGIN"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+        -X-Powered-By
+    }
+
+}
+
+# Gotify - Protected by Authelia (1FA)
+# WebSocket support, proxy headers, etc. are enabled by default in Caddy
+# API endpoints bypass Authelia, web UI requires authentication
+rodify.rodneyops.com {
+    forward_auth authelia:9091 {
+        uri /api/authz/forward-auth
+        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    }
+
+    reverse_proxy gotify:80
+
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Frame-Options "SAMEORIGIN"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss://rodify.rodneyops.com; frame-ancestors 'self'"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+        -X-Powered-By
+    }
+}
+
+# Dockge - Requires 2FA
+dockge.rodneyops.com {
+    forward_auth authelia:9091 {
+        uri /api/authz/forward-auth
+        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    }
+
+    reverse_proxy dockge:5001 {
+        # WebSocket support
+        header_up Connection {>Connection}
+        header_up Upgrade {>Upgrade}
+    }
+
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Frame-Options "SAMEORIGIN"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+        -X-Powered-By
+    }
+
+}
+
+##############################################################################
+# HTTP to HTTPS Redirect (catch-all)
+##############################################################################
+
+http:// {
+    redir https://{host}{uri} permanent
+}

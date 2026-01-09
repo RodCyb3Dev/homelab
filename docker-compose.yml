@@ -1,15 +1,15 @@
 ##############################################################################
 # CORE INFRASTRUCTURE - Secure Homelab Base
-# Security Stack
+# Security Stack with Caddy Reverse Proxy
 ##############################################################################
 networks:
-  pangolin-proxy:
+  caddy-proxy:
     driver: bridge
-    name: pangolin-proxy
+    name: caddy-proxy
 
 secrets:
   cf-token:
-    file: ./config/traefik/cf-token
+    file: ./config/caddy/cf-token
   JWT_SECRET:
     file: ./config/authelia/secrets/JWT_SECRET
   SESSION_SECRET:
@@ -25,6 +25,8 @@ secrets:
 
 volumes:
   authelia-postgres-data:
+  caddy-data:
+  caddy-config:
 
 services:
   ##############################################################################
@@ -40,138 +42,82 @@ services:
     expose:
       - 6060
     environment:
-      COLLECTIONS: crowdsecurity/traefik crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules
-      ENROLL_INSTANCE_NAME: pangolin-crowdsec
+      COLLECTIONS: crowdsecurity/caddy crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules
+      ENROLL_INSTANCE_NAME: homelab-crowdsec
       ENROLL_TAGS: docker
       GID: "1000"
       PARSERS: crowdsecurity/whitelists
     volumes:
-      - ./config/pangolin/crowdsec:/etc/crowdsec
-      - ./config/pangolin/crowdsec/db:/var/lib/crowdsec/data
-      - ./config/pangolin/crowdsec_logs/auth.log:/var/log/auth.log:ro
-      - ./config/pangolin/crowdsec_logs/syslog:/var/log/syslog:ro
-      - ./config/pangolin/crowdsec_logs:/var/log
+      - ./config/crowdsec:/etc/crowdsec
+      - ./config/crowdsec/db:/var/lib/crowdsec/data
+      - ./config/crowdsec_logs/auth.log:/var/log/auth.log:ro
+      - ./config/crowdsec_logs/syslog:/var/log/syslog:ro
+      - ./config/crowdsec_logs:/var/log
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - caddy-proxy
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     healthcheck:
       test:
         - CMD
         - cscli
-        - capi
+        - lapi
         - status
-    labels:
-      - traefik.enable=false
-    restart: unless-stopped
-
-  ##############################################################################
-  # NETWORK GATEGER - Gerbil
-  ##############################################################################
-
-  gerbil:
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    command:
-      - --reachableAt=${GERBIL_REACHABLE_URL}
-      - --generateAndSaveKeyTo=${GERBIL_KEY_PATH}
-      - --remoteConfig=${GERBIL_CONFIG_URL}
-      - --reportBandwidthTo=${GERBIL_BANDWIDTH_URL}
-    container_name: gerbil
-    depends_on:
-      pangolin:
-        condition: service_healthy
-    env_file:
-      - .env
-    image: fosrl/gerbil:1.0.0
-    networks:
-      - pangolin-proxy
-    ports:
-      - 51820:51820/udp
-      - 443:443
-      - 80:80
-    restart: unless-stopped
-    volumes:
-      - ./config/pangolin/:/var/config
-
-  ##############################################################################
-  # PANGOIN - Pangolin
-  ##############################################################################
-
-  pangolin:
-    image: fosrl/pangolin:1.2.0
-    container_name: pangolin
-    env_file:
-      - .env
-    environment:
-      - TZ=UTC
-      - USERS_SERVERADMIN_EMAIL=${ADMIN_EMAIL}
-      - USERS_SERVERADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USER=${SMTP_USERNAME}
-      - SMTP_PASS=${SMTP_PASSWORD}
-      - DOMAIN=${DOMAIN}
-      - CF_EMAIL_SSL=${CF_EMAIL_SSL}
-      - LE_EMAIL_SSL=${LE_EMAIL_SSL}
-    networks:
-      - pangolin-proxy
-    volumes:
-      - ./config/pangolin:/app/config
-      - ./config/pangolin/logs:/app/logs
-    healthcheck:
       interval: 30s
-      retries: 5
-      start_period: 60s
-      test:
-        - CMD
-        - curl
-        - -f
-        - http://localhost:3001/api/v1/
       timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      # HTTP router - redirects to HTTPS version
-      - "traefik.http.routers.pangolin-http.rule=Host(`ghost.rodneyops.com`)"
-      - "traefik.http.routers.pangolin-http.entrypoints=web"
-      - "traefik.http.routers.pangolin-http.middlewares=redirect-to-https@file"
-      # HTTPS router
-      - "traefik.http.routers.pangolin.rule=Host(`ghost.rodneyops.com`)"
-      - "traefik.http.routers.pangolin.entrypoints=websecure"
-      - "traefik.http.routers.pangolin.tls=true"
-      - "traefik.http.routers.pangolin.tls.certresolver=cloudflare"
-      - "traefik.http.routers.pangolin.middlewares=authelia@docker,security-headers@file"
-      - "traefik.http.services.pangolin.loadbalancer.server.port=3001"
-      - "traefik.http.services.pangolin.loadbalancer.passhostheader=true"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
-  # TRAEFIK - Traefik
+  # REVERSE PROXY - Caddy
   ##############################################################################
 
-  traefik:
-    command:
-      - --configFile=/etc/traefik/traefik_config.yml
-    container_name: traefik
-    depends_on:
-      pangolin:
-        condition: service_healthy
-    env_file:
-      - .env
+  caddy:
+    # Using builder image with Cloudflare DNS plugin
+    # Alternative: caddy:2.8-builder-alpine (requires building with xcaddy)
+    # For now, using standard image with HTTP-01 challenge
+    image: caddy:2.8-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    networks:
+      - caddy-proxy
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      - ./config/caddy/cf-token:/run/secrets/cf-token:ro
     environment:
-      - TRAEFIK_DASHBOARD_CREDENTIALS=${BASIC_AUTH}
       - CF_DNS_API_TOKEN_FILE=/run/secrets/cf-token
-    image: traefik:v3.3.6
-    network_mode: service:gerbil
-    restart: unless-stopped
-    secrets:
-      - cf-token
+      - TZ=${TZ:-UTC}
     security_opt:
       - no-new-privileges:true
-    volumes:
-      - ./config/traefik:/etc/traefik:ro
-      - ./config/traefik/letsencrypt:/letsencrypt:rw
-      - ./config/traefik/cloudflare/acme.json:/cloudflare/acme.json
-      - /etc/localtime:/etc/localtime:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+      - /var/run
+    depends_on:
+      - authelia
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2019/config/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     logging:
       driver: "json-file"
       options:
@@ -187,7 +133,7 @@ services:
     image: crazymax/fail2ban:latest
     container_name: fail2ban
     restart: unless-stopped
-    network_mode: service:gerbil
+    network_mode: host
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -205,6 +151,12 @@ services:
         limits:
           memory: 128M
           cpus: "0.2"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # SECURITY LAYER - Authelia
@@ -216,7 +168,7 @@ services:
     volumes:
       - ./config/authelia:/config
     networks:
-      - pangolin-proxy
+      - caddy-proxy
     depends_on:
       authelia-postgres:
         condition: service_healthy
@@ -231,32 +183,28 @@ services:
       - .env
     environment:
       TZ: Europe/Helsinki
-      AUTHELIA_LOG_LEVEL: 'trace'
+      AUTHELIA_LOG_LEVEL: 'info'
     security_opt:
       - no-new-privileges:true
-    ports:
-      - 9091:9091
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "1000:1000"
+    expose:
+      - 9091
     restart: unless-stopped
     healthcheck:
-      disable: true
-    labels:
-      - 'traefik.enable=true'
-      # HTTP router - redirects to HTTPS version
-      - 'traefik.http.routers.authelia-http.rule=Host(`auth.rodneyops.com`)'
-      - 'traefik.http.routers.authelia-http.entrypoints=web'
-      - 'traefik.http.routers.authelia-http.middlewares=redirect-to-https@file'
-      # HTTPS router
-      - 'traefik.http.routers.authelia.rule=Host(`auth.rodneyops.com`)'
-      - 'traefik.http.routers.authelia.entrypoints=websecure'
-      - 'traefik.http.routers.authelia.tls=true'
-      - 'traefik.http.routers.authelia.tls.certresolver=cloudflare'
-      - 'traefik.http.middlewares.authelia.forwardAuth.address=http://authelia:9091/api/authz/forward-auth'
-      - 'traefik.http.middlewares.authelia.forwardAuth.trustForwardHeader=true'
-      - 'traefik.http.middlewares.authelia.forwardAuth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email'
-      - 'traefik.http.middlewares.authelia-basic.forwardAuth.address=http://authelia:9091/api/verify?auth=basic'
-      - 'traefik.http.middlewares.authelia-basic.forwardAuth.trustForwardHeader=true'
-      - 'traefik.http.middlewares.authelia-basic.forwardAuth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email'
-      - 'traefik.http.services.authelia.loadbalancer.server.port=9091'
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9091/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # SECURITY LAYER - PostgreSQL (for Authelia)
@@ -266,7 +214,7 @@ services:
     image: postgres:16-alpine
     container_name: authelia-postgres
     networks:
-      - pangolin-proxy
+      - caddy-proxy
     environment:
       POSTGRES_DB: authelia
       POSTGRES_USER: authelia
@@ -277,6 +225,9 @@ services:
       - STORAGE_PASSWORD
     volumes:
       - authelia-postgres-data:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    user: "999:999"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U authelia -d authelia"]
@@ -300,9 +251,27 @@ services:
     volumes:
       - ./config/redis:/data
     networks:
-      - pangolin-proxy
+      - caddy-proxy
     expose:
       - 6379
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "999:999"
     restart: unless-stopped
     environment:
       - TZ=Europe/Helsinki
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"

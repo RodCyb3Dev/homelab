@@ -60,7 +60,7 @@
     msg: "Services to deploy: {{ services_list.stdout_lines }}"
   tags: deploy_services
 
-- name: Start Authelia first (required for Traefik middleware)
+- name: Start Authelia first (required for Caddy forward_auth)
   command: "{{ docker_compose_cmd }} up -d --remove-orphans --force-recreate authelia"
   args:
     chdir: "{{ deploy_path }}"

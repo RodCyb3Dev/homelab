@@ -1,20 +1,7 @@
 ##############################################################################
 # CROWDSEC - Log Acquisition Configuration
-# Define which logs CrowdSec should monitor
+# Updated for Caddy reverse proxy
 ##############################################################################
-
-##############################################################################
-# DOCKER CONTAINER LOGS (Primary - Best Practice)
-# Traefik logs to stdout/stderr, captured via Docker
-##############################################################################
----
-source: docker
-container_name:
-  - traefik
-  - authelia
-  - crowdsec
-labels:
-  type: docker
 
 ##############################################################################
 # SYSTEM LOGS
@@ -22,7 +9,6 @@ labels:
 ---
 filenames:
   - /var/log/auth.log
-  - /var/log/secure
 labels:
   type: syslog
 
@@ -33,16 +19,22 @@ labels:
   type: syslog
 
 ##############################################################################
-# CUSTOM APPLICATION LOGS (if needed)
+# CADDY LOGS (via Docker socket)
 ##############################################################################
-# ---
-# filenames:
-#   - /var/log/nginx/access.log
-# labels:
-#   type: nginx
+---
+source: docker
+container_name:
+  - caddy
+  - authelia
+  - crowdsec
+labels:
+  type: docker
 
-# ---
-# filenames:
-#   - /var/log/apache2/access.log
-# labels:
-#   type: apache2
+##############################################################################
+# FAIL2BAN LOGS
+##############################################################################
+---
+filenames:
+  - /var/log/fail2ban.log
+labels:
+  type: fail2ban

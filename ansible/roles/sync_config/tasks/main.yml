@@ -25,7 +25,8 @@
     - fail2ban/filter.d
     - immich
     - paperless
-    - pangolin
+    - caddy
+    - crowdsec
   tags: sync_config
 
 - name: Sync docker-compose.yml (core)
@@ -113,39 +114,12 @@
     recurse: yes
   tags: sync_config
 
-- name: Template Pangolin config file (with secrets from environment)
-  template:
-    src: pangolin-config.yml.j2
-    dest: "{{ deploy_path }}/config/pangolin/config.yml"
-    owner: deploy
-    group: deploy
-    mode: '0644'
-  vars:
-    _smtp_host: "{{ lookup('env', 'SMTP_HOST') | default(vault_smtp_host | default(''), true) }}"
-    pangolin_smtp_host: "{{ (_smtp_host | length > 0) | ternary(_smtp_host, 'smtp.protonmail.ch') }}"
-    _smtp_port: "{{ lookup('env', 'SMTP_PORT') | default(vault_smtp_port | default(''), true) }}"
-    pangolin_smtp_port: "{{ (_smtp_port | length > 0) | ternary(_smtp_port | int, 587) }}"
-    _smtp_user: "{{ lookup('env', 'SMTP_USER') | default(vault_smtp_username | default(''), true) }}"
-    pangolin_smtp_user: "{{ (_smtp_user | length > 0) | ternary(_smtp_user, 'info@kodeflash.dev') }}"
-    pangolin_smtp_pass: "{{ lookup('env', 'SMTP_PASSWORD') | default(vault_smtp_password | default(''), true) }}"
-    _no_reply: "{{ lookup('env', 'NO_REPLY_EMAIL') | default(vault_no_reply_email | default(''), true) }}"
-    pangolin_no_reply_email: "{{ (_no_reply | length > 0) | ternary(_no_reply, 'no-reply@kodeflash.dev') }}"
-    _admin_email: "{{ lookup('env', 'PANGOLIN_ADMIN_EMAIL') | default(vault_pangolin_admin_email | default(''), true) }}"
-    pangolin_admin_email: "{{ (_admin_email | length > 0) | ternary(_admin_email, 'rodney@kodeflash.dev') }}"
-    pangolin_admin_password: "{{ lookup('env', 'PANGOLIN_ADMIN_PASSWORD') | default(vault_pangolin_admin_password | default(''), true) }}"
-  no_log: false
-  tags: sync_config
-
-- name: Template Traefik middlewares.yml (with CrowdSec API key from vault)
-  template:
-    src: middlewares.yml.j2
-    dest: "{{ deploy_path }}/config/traefik/dynamic/middlewares.yml"
-    owner: deploy
-    group: deploy
-    mode: '0644'
-  vars:
-    crowdsec_bouncer_api_key: "{{ lookup('env', 'CROWDSEC_BOUNCER_KEY') | default(vault_crowdsec_bouncer_key | default('wwheoo2x/Mhk0p/ZW7nKbQl94Zkha1Ij/1jrEr3b2KQ')) }}"
-  no_log: true
+- name: Sync Caddyfile
+  synchronize:
+    src: "{{ inventory_dir }}/../Caddyfile"
+    dest: "{{ deploy_path }}/Caddyfile"
+    mode: push
+    perms: yes
   tags: sync_config
 
 - name: Sync configuration files (excluding secrets and runtime data)
@@ -168,8 +142,8 @@
       - "--exclude=*.key"
       - "--exclude=*.pem"
       - "--exclude=*.crt"
-      - "--exclude=pangolin/config.yml"
-      - "--exclude=traefik/dynamic/middlewares.yml"
+      - "--exclude=traefik/"
+      - "--exclude=pangolin/"
       - "--update"
   tags: sync_config
 

@@ -39,6 +39,11 @@ services:
     volumes:
       - ./config/tailscale/immich:/config
       - ./config/tailscale/immich:/var/lib/tailscale
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "tailscale", "status"]
@@ -46,6 +51,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # DATABASE - PostgreSQL
@@ -64,6 +75,9 @@ services:
       - TZ=${TZ:-UTC}
     volumes:
       - immich-postgres-data:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    user: "999:999"
     healthcheck:
       test: >-
         pg_isready --dbname="$${POSTGRES_DB}" --username="$${POSTGRES_USER}" || exit 1; Chksum="$$(psql --dbname="$${POSTGRES_DB}" --username="$${POSTGRES_USER}" --tuples-only --no-align --command='SELECT COALESCE(SUM(checksum_failures), 0) FROM pg_stat_database')"; echo "checksum failure count is $$Chksum"; [ "$$Chksum" = '0' ] || exit 1
@@ -73,6 +87,12 @@ services:
     command: >-
       postgres -c shared_preload_libraries=vectors.so -c 'search_path="$$user", public, vectors' -c logging_collector=on -c max_wal_size=2GB -c shared_buffers=512MB -c wal_compression=on
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # CACHE - Redis
@@ -89,12 +109,25 @@ services:
     command: redis-server --save 60 1 --loglevel warning --requirepass "$${REDIS_PASSWORD}"
     volumes:
       - immich-redis-data:/data
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "999:999"
     healthcheck:
       test: >-
         redis-cli -a "$${REDIS_PASSWORD}" ping || exit 1; echo "Redis connection failed"
       interval: 30s
       timeout: 10s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # APPLICATION SERVER - Immich Server
@@ -124,6 +157,13 @@ services:
       # Mounted at /mnt/storagebox-immich on host (u527847.your-storagebox.de)
       # Accessible as /media in container
       - immich-storagebox:/media:ro
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "1000:1000"
     depends_on:
       immich-postgres:
         condition: service_healthy
@@ -135,6 +175,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # MICROSERVICES - Immich ML Processing
@@ -153,8 +199,26 @@ services:
     command: [ "start.sh", "microservices" ]
     volumes:
       - immich-uploads:/usr/src/app/upload
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "1000:1000"
     depends_on:
       - immich-server
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/server-info/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   immich-machine-learning:
     container_name: immich_machine_learning
@@ -163,7 +227,25 @@ services:
       - model-cache:/usr/src/app/model-cache
     env_file:
       - .env
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "1000:1000"
     restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/server-info/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # WEB INTERFACE - Immich Web
@@ -178,5 +260,23 @@ services:
       - .env
     environment:
       - TZ=${TZ:-UTC}
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "1000:1000"
     depends_on:
       - immich-server
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"

@@ -11,7 +11,6 @@
       TZ: "{{ lookup('env', 'TIMEZONE') | default(vault_timezone | default('UTC')) }}"
       PGID: "{{ lookup('env', 'PGID') | default(vault_pgid | default('1000')) }}"
       PUID: "{{ lookup('env', 'PUID') | default(vault_puid | default('1000')) }}"
-      BASIC_AUTH: "{{ lookup('env', 'BASIC_AUTH') | default(vault_basic_auth | default('')) }}"
       STORAGE_BOX_PASSWORD: "{{ lookup('env', 'STORAGE_BOX_PASSWORD') | default(vault_storage_box_password | default('')) }}"
       STORAGE_BOX_USER: "{{ lookup('env', 'STORAGE_BOX_USER') | default(vault_storage_box_user | default('')) }}"
       STORAGE_BOX_HOST: "{{ lookup('env', 'STORAGE_BOX_HOST') | default(vault_storage_box_host | default('')) }}"
@@ -54,21 +53,9 @@
       IMMICH_SB_PASSWORD: "{{ lookup('env', 'IMMICH_SB_PASSWORD') | default(vault_immich_sb_password | default('')) }}"
       IMMICH_SB_PORT: "{{ lookup('env', 'IMMICH_SB_PORT') | default(vault_immich_sb_port | default('')) }}"
       JELLYFIN_PUBLISHED_URL: "{{ lookup('env', 'JELLYFIN_PUBLISHED_URL') | default(vault_jellyfin_published_url | default('')) }}"
-      # Pangolin configuration
-      PANGOLIN_SMTP_HOST: "{{ lookup('env', 'SMTP_HOST') | default(vault_smtp_host | default('smtp.protonmail.ch')) }}"
-      PANGOLIN_SMTP_PORT: "{{ lookup('env', 'SMTP_PORT') | default(vault_smtp_port | default('587')) }}"
-      PANGOLIN_SMTP_USER: "{{ lookup('env', 'SMTP_USER') | default(vault_smtp_username | default('info@kodeflash.dev')) }}"
-      PANGOLIN_SMTP_PASS: "{{ lookup('env', 'SMTP_PASSWORD') | default(vault_smtp_password | default('')) }}"
-      PANGOLIN_NO_REPLY_EMAIL: "{{ lookup('env', 'NO_REPLY_EMAIL') | default(vault_no_reply_email | default('no-reply@kodeflash.dev')) }}"
-      PANGOLIN_ADMIN_EMAIL: "{{ lookup('env', 'PANGOLIN_ADMIN_EMAIL') | default(vault_pangolin_admin_email | default('rodney@kodeflash.dev')) }}"
-      PANGOLIN_ADMIN_PASSWORD: "{{ lookup('env', 'PANGOLIN_ADMIN_PASSWORD') | default(vault_pangolin_admin_password | default('')) }}"
+      # Note: Pangolin and Gerbil removed - using Caddy instead
       ADMIN_EMAIL: "{{ lookup('env', 'ADMIN_EMAIL') | default(vault_admin_email | default('rodney@kodeflash.dev')) }}"
       ADMIN_PASSWORD: "{{ lookup('env', 'ADMIN_PASSWORD') | default(vault_admin_password | default('')) }}"
-      # Gerbil configuration
-      GERBIL_REACHABLE_URL: "{{ lookup('env', 'GERBIL_REACHABLE_URL') | default(vault_gerbil_reachable_url | default('')) }}"
-      GERBIL_KEY_PATH: "{{ lookup('env', 'GERBIL_KEY_PATH') | default(vault_gerbil_key_path | default('')) }}"
-      GERBIL_CONFIG_URL: "{{ lookup('env', 'GERBIL_CONFIG_URL') | default(vault_gerbil_config_url | default('')) }}"
-      GERBIL_BANDWIDTH_URL: "{{ lookup('env', 'GERBIL_BANDWIDTH_URL') | default(vault_gerbil_bandwidth_url | default('')) }}"
 
   no_log: true
   tags: sync_secrets
@@ -177,19 +164,19 @@
   no_log: true
   tags: sync_secrets
 
-- name: Ensure Traefik Cloudflare API token file exists
+- name: Ensure Caddy Cloudflare API token file exists
   file:
-    path: "{{ deploy_path }}/config/traefik/cf_api_token.txt"
+    path: "{{ deploy_path }}/config/caddy/cf-token"
     state: touch
     owner: deploy
     group: deploy
     mode: '0600'
   tags: sync_secrets
 
-- name: Set Cloudflare API token from environment variable
+- name: Set Cloudflare API token for Caddy
   copy:
     content: "{{ lookup('env', 'CF_API_TOKEN') | default(vault_cf_api_token | default('')) }}"
-    dest: "{{ deploy_path }}/config/traefik/cf_api_token.txt"
+    dest: "{{ deploy_path }}/config/caddy/cf-token"
     owner: deploy
     group: deploy
     mode: '0600'
@@ -210,15 +197,6 @@
   no_log: true
   tags: sync_secrets
 
-- name: Set Pangolin config variables
-  set_fact:
-    pangolin_vars:
-      smtp_host: "{{ secrets.PANGOLIN_SMTP_HOST }}"
-      smtp_port: "{{ secrets.PANGOLIN_SMTP_PORT }}"
-      smtp_user: "{{ secrets.PANGOLIN_SMTP_USER }}"
-      smtp_pass: "{{ secrets.PANGOLIN_SMTP_PASS }}"
-      no_reply_email: "{{ secrets.PANGOLIN_NO_REPLY_EMAIL }}"
-      admin_email: "{{ secrets.PANGOLIN_ADMIN_EMAIL }}"
-      admin_password: "{{ secrets.PANGOLIN_ADMIN_PASSWORD }}"
+# Note: Pangolin config variables removed - no longer needed with Caddy
   no_log: true
   tags: sync_secrets

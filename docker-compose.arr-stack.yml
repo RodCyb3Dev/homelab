@@ -49,6 +49,9 @@ services:
       #- NET_RAW
     security_opt:
       - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     deploy:
       resources:
         limits:
@@ -59,6 +62,12 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # MEDIA SERVER - Jellyfin
@@ -80,12 +89,24 @@ services:
       - ./config/jellyfin/config:/config
       - ./config/jellyfin/cache:/cache
       - hetzner-media:/media:ro
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "1000:1000"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8096/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # MEDIA REQUEST - Jellyseerr
@@ -108,11 +129,24 @@ services:
       - TRAKT_LIST_ID=${TRAKT_LIST_ID}
     volumes:
       - ./config/jellyfin/jellyseerr:/config
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "1000:1000"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5055/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # MEDIA AUTOMATION - Jellyfin Auto Collections
@@ -157,7 +191,7 @@ services:
   ##############################################################################
   # VPN GATEWAY - Gluetun
   # Note: Arr stack services use network_mode: service:gluetun, so they cannot
-  # have Traefik Docker labels. Routing is configured in config/traefik/dynamic/routers.yml
+  # Note: Services use Tailscale Serve directly, not Caddy/Traefik
   # which routes based on Host headers to the appropriate Gluetun port.
   ##############################################################################
 
@@ -195,6 +229,9 @@ services:
       - ./config/gluetun:/gluetun
     security_opt:
       - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     deploy:
       resources:
         limits:
@@ -205,6 +242,12 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # TORRENT CLIENT - qBittorrent
@@ -230,12 +273,27 @@ services:
         condition: service_healthy
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     user: "1000:1000"
     deploy:
       resources:
         limits:
           memory: 256M
           cpus: "0.5"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/api/v2/app/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # INDEXER MANAGER - Prowlarr
@@ -259,12 +317,27 @@ services:
         condition: service_healthy
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     user: "1000:1000"
     deploy:
       resources:
         limits:
           memory: 128M
           cpus: "0.3"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9696/api/v1/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # MOVIE MANAGER - Radarr
@@ -291,12 +364,27 @@ services:
         condition: service_started
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     user: "1000:1000"
     deploy:
       resources:
         limits:
           memory: 192M
           cpus: "0.3"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7878/api/v3/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # TV SHOW MANAGER - Sonarr
@@ -323,12 +411,27 @@ services:
         condition: service_started
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     user: "1000:1000"
     deploy:
       resources:
         limits:
           memory: 192M
           cpus: "0.3"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8989/api/v3/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # MUSIC MANAGER - Lidarr
@@ -355,12 +458,27 @@ services:
         condition: service_started
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     user: "1000:1000"
     deploy:
       resources:
         limits:
           memory: 128M
           cpus: "0.3"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8686/api/v1/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # BOOK MANAGER - LazyLibrarian
@@ -387,12 +505,27 @@ services:
         condition: service_started
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     user: "1000:1000"
     deploy:
       resources:
         limits:
           memory: 256M
           cpus: "0.5"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5299/api"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # SUBTITLE MANAGER - Bazarr
@@ -421,12 +554,27 @@ services:
         condition: service_started
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     user: "1000:1000"
     deploy:
       resources:
         limits:
           memory: 128M
           cpus: "0.2"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6767/api/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # CAPTCHA SOLVER - Flaresolverr
@@ -451,9 +599,24 @@ services:
         condition: service_healthy
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     user: "1000:1000"
     deploy:
       resources:
         limits:
           memory: 128M
           cpus: "0.2"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8191/v1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"

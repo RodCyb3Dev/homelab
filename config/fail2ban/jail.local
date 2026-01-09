@@ -52,22 +52,22 @@ bantime = 7200
 findtime = 300
 
 ##############################################################################
-# TRAEFIK PROTECTION
+# CADDY PROTECTION
 ##############################################################################
-[traefik-auth]
+[caddy-auth]
 enabled = true
 port = http,https
-filter = traefik-auth
-logpath = /var/log/traefik/access.log
+filter = caddy-auth
+logpath = /var/log/caddy/access.log
 maxretry = 5
 bantime = 3600
 findtime = 600
 
-[traefik-botsearch]
+[caddy-botsearch]
 enabled = true
 port = http,https
-filter = traefik-botsearch
-logpath = /var/log/traefik/access.log
+filter = caddy-botsearch
+logpath = /var/log/caddy/access.log
 maxretry = 3
 bantime = 7200
 findtime = 600
@@ -79,7 +79,7 @@ findtime = 600
 enabled = true
 port = http,https
 filter = authelia
-logpath = /var/log/traefik/access.log
+logpath = /var/log/caddy/access.log
 maxretry = 5
 bantime = 3600
 findtime = 600
@@ -104,7 +104,7 @@ findtime = 600
 enabled = true
 port = http,https
 filter = http-get-dos
-logpath = /var/log/traefik/access.log
+logpath = /var/log/caddy/access.log
 maxretry = 300
 findtime = 300
 bantime = 600
@@ -113,7 +113,7 @@ bantime = 600
 enabled = true
 port = http,https
 filter = http-post-dos
-logpath = /var/log/traefik/access.log
+logpath = /var/log/caddy/access.log
 maxretry = 100
 findtime = 300
 bantime = 600

@@ -4,8 +4,8 @@
 ##############################################################################
 networks:
   grafana-monitoring:
-  pangolin-proxy:
-    external: true  # Use the existing pangolin network
+  caddy-proxy:
+    external: true  # Use the existing caddy network
 
 volumes:
   # Hetzner Storage Box for media (shared across services)
@@ -47,10 +47,15 @@ services:
       - "--web.console.templates=/usr/share/prometheus/consoles"
       - "--web.enable-lifecycle"
     volumes:
-      - ./config/prometheus:/etc/prometheus
+      - ./config/prometheus:/etc/prometheus:ro
       - prometheus-data:/prometheus
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "65534:65534"
     deploy:
       resources:
         limits:
@@ -62,6 +67,12 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # MONITORING - Grafana (Visualization)
@@ -75,7 +86,7 @@ services:
       - .env
     networks:
       - grafana-monitoring
-      - pangolin-proxy
+      - caddy-proxy
     environment:
       - GF_SERVER_ROOT_URL=https://grafana.rodneyops.com
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
@@ -87,9 +98,13 @@ services:
       - TZ=${TZ:-UTC}
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
     user: "1000:1000"
     deploy:
       resources:
@@ -102,20 +117,13 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    labels:
-      - "traefik.enable=true"
-      # HTTP router - redirects to HTTPS version
-      - "traefik.http.routers.grafana-http.rule=Host(`grafana.rodneyops.com`)"
-      - "traefik.http.routers.grafana-http.entrypoints=web"
-      - "traefik.http.routers.grafana-http.middlewares=redirect-to-https@file"
-      # HTTPS router
-      - "traefik.http.routers.grafana.rule=Host(`grafana.rodneyops.com`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.routers.grafana.tls.certresolver=cloudflare"
-      - "traefik.http.routers.grafana.middlewares=authelia@docker"
-      - "traefik.http.routers.grafana.service=grafana"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+    # Note: Caddy routing is configured in Caddyfile, not via Docker labels
 
   ##############################################################################
   # MONITORING - Loki (Log Aggregation)
@@ -129,10 +137,15 @@ services:
       - grafana-monitoring
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
-      - ./config/loki:/etc/loki
+      - ./config/loki:/etc/loki:ro
       - loki-data:/loki
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "10001:10001"
     deploy:
       resources:
         limits:
@@ -143,6 +156,12 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # MONITORING - Promtail (Log Shipper)
@@ -162,11 +181,27 @@ services:
     command: -config.file=/etc/promtail/promtail-config.yml
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "10001:10001"
     deploy:
       resources:
         limits:
           memory: 128M
           cpus: "0.2"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9080/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # MONITORING - Node Exporter (System Metrics)
@@ -189,11 +224,27 @@ services:
       - /:/rootfs:ro
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "65534:65534"
     deploy:
       resources:
         limits:
           memory: 64M
           cpus: "0.1"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9100/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
 
   ##############################################################################
   # MONITORING - cAdvisor (Container Metrics)
@@ -232,25 +283,28 @@ services:
       - .env
     networks:
       - grafana-monitoring
-      - pangolin-proxy
+      - caddy-proxy
     volumes:
       - ./config/uptime-kuma:/app/data
     security_opt:
       - no-new-privileges:true
-    labels:
-      - "traefik.enable=true"
-      # HTTP router - redirects to HTTPS version
-      - "traefik.http.routers.uptime-kuma-http.rule=Host(`status.rodneyops.com`)"
-      - "traefik.http.routers.uptime-kuma-http.entrypoints=web"
-      - "traefik.http.routers.uptime-kuma-http.middlewares=redirect-to-https@file"
-      # HTTPS router
-      - "traefik.http.routers.uptime-kuma.rule=Host(`status.rodneyops.com`)"
-      - "traefik.http.routers.uptime-kuma.entrypoints=websecure"
-      - "traefik.http.routers.uptime-kuma.tls=true"
-      - "traefik.http.routers.uptime-kuma.tls.certresolver=cloudflare"
-      - "traefik.http.routers.uptime-kuma.middlewares=authelia@docker"
-      - "traefik.http.routers.uptime-kuma.service=uptime-kuma"
-      - "traefik.http.services.uptime-kuma.loadbalancer.server.port=3001"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "1000:1000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+    # Note: Caddy routing is configured in Caddyfile, not via Docker labels
 
   ##############################################################################
   # NOTIFICATION - Gotify (Push Notifications)
@@ -263,7 +317,7 @@ services:
     env_file:
       - .env
     networks:
-      - pangolin-proxy
+      - caddy-proxy
     environment:
       - GOTIFY_DEFAULTUSER_NAME=${GOTIFY_ADMIN_USER:-admin}
       - GOTIFY_DEFAULTUSER_PASS=${GOTIFY_ADMIN_PASSWORD}
@@ -272,6 +326,11 @@ services:
       - ./config/gotify:/app/data
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "1000:1000"
     deploy:
       resources:
         limits:
@@ -283,26 +342,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    labels:
-      - "traefik.enable=true"
-      # HTTP router - redirects to HTTPS version
-      - "traefik.http.routers.gotify-http.rule=Host(`rodify.rodneyops.com`)"
-      - "traefik.http.routers.gotify-http.entrypoints=web"
-      - "traefik.http.routers.gotify-http.middlewares=redirect-to-https@file"
-      # HTTPS router
-      - "traefik.http.routers.gotify.rule=Host(`rodify.rodneyops.com`)"
-      - "traefik.http.routers.gotify.entrypoints=websecure"
-      - "traefik.http.routers.gotify.tls=true"
-      - "traefik.http.routers.gotify.tls.certresolver=cloudflare"
-      - "traefik.http.routers.gotify.middlewares=authelia@docker"
-      - "traefik.http.services.gotify.loadbalancer.server.port=80"
-      - "traefik.http.services.gotify.loadbalancer.passhostheader=true"
-      # WebSocket support
-      - "traefik.http.middlewares.gotify-ws.headers.customrequestheaders.Upgrade=websocket"
-      - "traefik.http.middlewares.gotify-ws.headers.customrequestheaders.Connection=upgrade"
-      # Timeouts (using correct Traefik v3 syntax)
-      - "traefik.http.services.gotify.loadbalancer.responseForwarding.flushInterval=1ms"
-      - "traefik.http.services.gotify.loadbalancer.server.port=80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+    # Note: Caddy routing is configured in Caddyfile, not via Docker labels
 
   ##############################################################################
   # MANAGEMENT - Dockge (Docker Compose Stack Manager)
@@ -315,7 +361,7 @@ services:
     env_file:
       - .env
     networks:
-      - pangolin-proxy
+      - caddy-proxy
     environment:
       - DOCKGE_STACKS_DIR=/opt/stacks
       - TZ=${TZ:-UTC}
@@ -325,27 +371,21 @@ services:
       - /opt/stacks:/opt/stacks
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    user: "1000:1000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
-    labels:
-      - "traefik.enable=true"
-      # HTTP router - redirects to HTTPS version
-      - "traefik.http.routers.dockge-http.rule=Host(`dockge.rodneyops.com`)"
-      - "traefik.http.routers.dockge-http.entrypoints=web"
-      - "traefik.http.routers.dockge-http.middlewares=redirect-to-https@file"
-      # HTTPS router
-      - "traefik.http.routers.dockge.rule=Host(`dockge.rodneyops.com`)"
-      - "traefik.http.routers.dockge.entrypoints=websecure"
-      - "traefik.http.routers.dockge.tls=true"
-      - "traefik.http.routers.dockge.tls.certresolver=cloudflare"
-      - "traefik.http.routers.dockge.middlewares=authelia@docker"
-      - "traefik.http.routers.dockge.service=dockge"
-      - "traefik.http.services.dockge.loadbalancer.server.port=5001"
-      - "traefik.http.services.dockge.loadbalancer.passhostheader=true"
-      # WebSocket support for real-time updates
-      - "traefik.http.middlewares.dockge-ws.headers.customrequestheaders.Upgrade=websocket"
-      - "traefik.http.middlewares.dockge-ws.headers.customrequestheaders.Connection=upgrade"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+    # Note: Caddy routing is configured in Caddyfile, not via Docker labels

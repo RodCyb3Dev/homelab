@@ -80,9 +80,18 @@ config/crowdsec/db/
 config/crowdsec/data/
 config/crowdsec/*.db
 
-# Traefik
-config/traefik/logs/*.log
-config/traefik/logs/*.gz
+# Legacy (archived)
+archive/
+
+# Traefik (legacy - archived)
+# config/traefik/logs/*.log
+# config/traefik/logs/*.gz
+
+# Caddy
+caddy-data/
+caddy-config/
+config/caddy/logs/*.log
+config/caddy/logs/*.gz
 
 # Tailscale
 config/tailscale/*.state
