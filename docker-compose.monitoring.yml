@@ -155,10 +155,12 @@ services:
           memory: 256M
           cpus: "0.3"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      # Loki doesn't have wget, use sh with netcat or check process
+      test: ["CMD-SHELL", "nc -z localhost 3100 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
     logging:
       driver: "json-file"
       options:
@@ -197,7 +199,8 @@ services:
           memory: 128M
           cpus: "0.2"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9080/ready"]
+      # Promtail doesn't have wget, use sh with netcat or check process
+      test: ["CMD-SHELL", "nc -z localhost 9080 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -434,11 +437,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 120s
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: "1.0"
     logging:
       driver: "json-file"
       options:
