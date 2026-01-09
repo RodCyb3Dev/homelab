@@ -163,11 +163,12 @@ checkmk.rodneyops.com {
 
     # Checkmk web UI is at /homelab/check_mk/ (site ID is 'homelab')
     reverse_proxy checkmk:8000 {
-        # Preserve the original request path
-        header_up Host {host}
-        header_up X-Real-IP {remote}
-        header_up X-Forwarded-For {remote}
-        header_up X-Forwarded-Proto {scheme}
+        # Transport settings for better compatibility with Checkmk
+        transport http {
+            dial_timeout 10s
+            response_header_timeout 30s
+            expect_continue_timeout 5s
+        }
     }
 
     header {
