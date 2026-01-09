@@ -184,11 +184,13 @@ services:
     command: -config.file=/etc/promtail/promtail-config.yml
     security_opt:
       - no-new-privileges:true
-    read_only: true
+    # Note: Promtail needs to access Docker socket and log files
+    # read_only removed to allow proper operation
     tmpfs:
       - /tmp
       - /var/tmp
-    user: "10001:10001"
+    # Note: Promtail needs root to access Docker socket and system logs
+    # Removed user restriction
     deploy:
       resources:
         limits:
@@ -291,11 +293,13 @@ services:
       - ./config/uptime-kuma:/app/data
     security_opt:
       - no-new-privileges:true
-    read_only: true
+    # Note: Uptime Kuma needs to write database and manage data directory
+    # read_only removed to allow database writes and chown operations
     tmpfs:
       - /tmp
       - /var/tmp
-    user: "1000:1000"
+    # Note: Uptime Kuma needs to chown data directory on startup
+    # Removed user restriction
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/ping"]
       interval: 30s
@@ -374,11 +378,13 @@ services:
       - /opt/stacks:/opt/stacks
     security_opt:
       - no-new-privileges:true
-    read_only: true
+    # Note: Dockge needs to write SQLite database files
+    # read_only removed to allow database writes
     tmpfs:
       - /tmp
       - /var/tmp
-    user: "1000:1000"
+    # Note: Dockge needs to manage data directory permissions
+    # Removed user restriction
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/"]
       interval: 30s
