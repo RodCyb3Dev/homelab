@@ -285,7 +285,6 @@ services:
       - /tmp
       - /var/tmp
       - /run # Added for s6-overlay (needs to be writable)
-    user: "1000:1000"
     #deploy:
      #  resources:
      #    limits:
