@@ -35,7 +35,7 @@ services:
       - TS_AUTHKEY=${TAILSCALE_AUTH_KEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
-      - TS_SERVE_CONFIG=/config/tailscale/jellyfin-arr/ts-jellyfin.json
+      - TS_SERVE_CONFIG=/config/ts-jellyfin.json
       - TS_CERT_DOMAIN=anduin.kooka-lake.ts.net
       - TS_EXTRA_ARGS=--advertise-routes=172.25.0.0/24 --accept-routes
       - TZ=${TZ:-UTC}
