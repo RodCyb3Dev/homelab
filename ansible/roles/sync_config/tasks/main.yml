@@ -49,7 +49,7 @@
 
 - name: Sync docker-compose.arr-stack.yml
   synchronize:
-    src: "{{ playbook_dir }}/../docker-compose.arr-stack.yml"
+    src: "{{ inventory_dir }}/../docker-compose.arr-stack.yml"
     dest: "{{ deploy_path }}/docker-compose.arr-stack.yml"
     mode: push
     perms: yes

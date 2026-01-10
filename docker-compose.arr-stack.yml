@@ -26,7 +26,7 @@ services:
     image: tailscale/tailscale:latest
     container_name: ts-anduin
     restart: unless-stopped
-    hostname: ts-anduin-gateway
+    hostname: anduin
     env_file:
       - .env
     networks:
