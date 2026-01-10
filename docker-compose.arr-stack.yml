@@ -9,7 +9,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.22.0.0/24  # Changed from 172.21.0.0/24 to avoid subnet overlap
+        - subnet: 172.25.0.0/24  # Changed to avoid subnet overlap with existing networks
 
 volumes:
   # Reference external hetzner-media volume
@@ -37,7 +37,7 @@ services:
       - TS_USERSPACE=false
       - TS_SERVE_CONFIG=/config/tailscale/jellyfin-arr/ts-jellyfin.json
       - TS_CERT_DOMAIN=anduin.kooka-lake.ts.net
-      - TS_EXTRA_ARGS=--advertise-routes=172.22.0.0/24 --accept-routes
+      - TS_EXTRA_ARGS=--advertise-routes=172.25.0.0/24 --accept-routes
       - TZ=${TZ:-UTC}
     volumes:
       - ./config/tailscale/jellyfin-arr:/config
