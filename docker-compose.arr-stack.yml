@@ -96,6 +96,7 @@ services:
       - /tmp
       - /var/tmp
     user: "1000:1000"
+    # Note: Ensure /opt/homelab/config/jellyfin/config is owned by 1000:1000
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8096/health"]
       interval: 30s
@@ -136,7 +137,7 @@ services:
     tmpfs:
       - /tmp
       - /var/tmp
-      - /app/config/logs # Added for Jellyseerr logs
+      - /app/config/logs # Added for Jellyseerr logs (must be writable)
     user: "1000:1000"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5055/health"]
