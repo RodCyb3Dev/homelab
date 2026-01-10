@@ -237,12 +237,12 @@ services:
         limits:
           memory: 128M
           cpus: "0.3"
-            healthcheck:
-              test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/v1/openvpn/status", "--header", "Authorization: Basic $(echo -n '':'' | base64)"]
-              interval: 30s
-              timeout: 10s
-              retries: 3
-              start_period: 60s
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/v1/openvpn/status", "--header", "Authorization: Basic $(echo -n '':'' | base64)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     logging:
       driver: "json-file"
       options:
