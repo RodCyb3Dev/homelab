@@ -76,7 +76,7 @@
 
 - name: Sync docker-compose.monitoring.yml
   synchronize:
-    src: "{{ playbook_dir }}/../../docker-compose.monitoring.yml"
+    src: "{{ inventory_dir }}/../docker-compose.monitoring.yml"
     dest: "{{ deploy_path }}/docker-compose.monitoring.yml"
     mode: push
     perms: yes
