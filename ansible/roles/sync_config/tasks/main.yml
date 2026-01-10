@@ -139,6 +139,8 @@
       - "--exclude=cache/"
       - "--exclude=logs/"
       - "--exclude=*.txt"
+      - "--include=**/requirements.txt"
+      - "--include=**/Dockerfile"
       - "--exclude=*.key"
       - "--exclude=*.pem"
       - "--exclude=*.crt"

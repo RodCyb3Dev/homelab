@@ -138,19 +138,19 @@ services:
       - /dev/dri:/dev/dri
     volumes:
       - ./config/jellyfin/jellyseerr:/config
-    #security_opt:
-    #  - no-new-privileges:true
-    #read_only: true
     #tmpfs:
     #  - /tmp
     #  - /var/tmp
-    #  - /app/config/logs # Added for Jellyseerr logs (must be writable)
+    #  - /app/config/logs  # Jellyseerr logs (must be writable)
+    #security_opt:
+    #  - no-new-privileges:true
     #user: "1000:1000"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5055/health"]
+      test: ["CMD", "ping", "-c", "1", "127.0.0.1"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     logging:
       driver: "json-file"
       options:
@@ -193,10 +193,15 @@ services:
       - JELLYSEERR_USER_TYPE=${JELLYSEERR_USER_TYPE:-local}
     volumes:
       - ./config/jellyfin/jellyfin-plugins/auto-collections/config.yaml:/app/config/config.yaml
+    tmpfs:
+      - /tmp
+      - /var/tmp
     restart: unless-stopped
     depends_on:
-      - ts-anduin
-      - jellyfin
+      ts-anduin:
+        condition: service_started
+      jellyfin:
+        condition: service_started
 
   ##############################################################################
   # VPN GATEWAY - Gluetun
@@ -242,9 +247,9 @@ services:
       - ./config/gluetun:/gluetun
     security_opt:
       - no-new-privileges:true
-    tmpfs:
-      - /tmp
-      - /var/tmp
+    #tmpfs:
+    #  - /tmp
+    #  - /var/tmp
     #deploy:
     #  resources:
     #    limits:
@@ -632,11 +637,11 @@ services:
      #    limits:
      #      memory: 128M
      #      cpus: "0.2"
-    healthcheck:
-      test: ["CMD", "ping", "-c", "1", "127.0.0.1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    #healthcheck:
+    #  test: ["CMD", "ping", "-c", "1", "127.0.0.1"]
+    #  interval: 30s
+    #  timeout: 10s
+    #  retries: 3
     logging:
       driver: "json-file"
       options:
