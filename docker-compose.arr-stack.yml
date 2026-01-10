@@ -284,14 +284,15 @@ services:
     tmpfs:
       - /tmp
       - /var/tmp
+      - /run # Added for s6-overlay (needs to be writable)
     user: "1000:1000"
     #deploy:
-    #  resources:
-    #    limits:
-    #      memory: 256M
-    #      cpus: "0.5"
-    #healthcheck:
-    #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/api/v2/app/version"]
+     #  resources:
+     #    limits:
+     #      memory: 256M
+     #      cpus: "0.5"
+     #healthcheck:
+     #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/api/v2/app/version"]
     #  interval: 30s
     #  timeout: 10s
     #  retries: 3
@@ -328,14 +329,15 @@ services:
     tmpfs:
       - /tmp
       - /var/tmp
+      - /run # Added for s6-overlay (needs to be writable)
     user: "1000:1000"
     #deploy:
-    #  resources:
-    #    limits:
-    #      memory: 128M
-    #      cpus: "0.3"
-    #healthcheck:
-    #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9696/api/v1/system/status"]
+     #  resources:
+     #    limits:
+     #      memory: 128M
+     #      cpus: "0.3"
+     #healthcheck:
+     #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9696/api/v1/system/status"]
     #  interval: 30s
     #  timeout: 10s
     #  retries: 3
@@ -375,14 +377,15 @@ services:
     tmpfs:
       - /tmp
       - /var/tmp
+      - /run # Added for s6-overlay (needs to be writable)
     user: "1000:1000"
     #deploy:
-    #  resources:
-    #    limits:
-    #      memory: 192M
-    #      cpus: "0.3"
-    #healthcheck:
-    #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7878/api/v3/system/status"]
+     #  resources:
+     #    limits:
+     #      memory: 192M
+     #      cpus: "0.3"
+     #healthcheck:
+     #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7878/api/v3/system/status"]
     #  interval: 30s
     #  timeout: 10s
     #  retries: 3
@@ -422,14 +425,15 @@ services:
     tmpfs:
       - /tmp
       - /var/tmp
+      - /run # Added for s6-overlay (needs to be writable)
     user: "1000:1000"
     #deploy:
-    #  resources:
-    #    limits:
-    #      memory: 192M
-    #      cpus: "0.3"
-    #healthcheck:
-    #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8989/api/v3/system/status"]
+     #  resources:
+     #    limits:
+     #      memory: 192M
+     #      cpus: "0.3"
+     #healthcheck:
+     #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8989/api/v3/system/status"]
     #  interval: 30s
     #  timeout: 10s
     #  retries: 3
@@ -469,14 +473,15 @@ services:
     tmpfs:
       - /tmp
       - /var/tmp
+      - /run # Added for s6-overlay (needs to be writable)
     user: "1000:1000"
     #deploy:
-    #  resources:
-    #    limits:
-    #      memory: 128M
-    #      cpus: "0.3"
-    #healthcheck:
-    #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8686/api/v1/system/status"]
+     #  resources:
+     #    limits:
+     #      memory: 128M
+     #      cpus: "0.3"
+     #healthcheck:
+     #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8686/api/v1/system/status"]
     #  interval: 30s
     #  timeout: 10s
     #  retries: 3
@@ -516,14 +521,15 @@ services:
     tmpfs:
       - /tmp
       - /var/tmp
+      - /run # Added for s6-overlay (needs to be writable)
     user: "1000:1000"
     #deploy:
-    #  resources:
-    #    limits:
-    #      memory: 256M
-    #      cpus: "0.5"
-    #healthcheck:
-    #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5299/api"]
+     #  resources:
+     #    limits:
+     #      memory: 256M
+     #      cpus: "0.5"
+     #healthcheck:
+     #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5299/api"]
     #  interval: 30s
     #  timeout: 10s
     #  retries: 3
@@ -565,14 +571,15 @@ services:
     tmpfs:
       - /tmp
       - /var/tmp
+      - /run # Added for s6-overlay (needs to be writable)
     user: "1000:1000"
     #deploy:
-    #  resources:
-    #    limits:
-    #      memory: 128M
-    #      cpus: "0.2"
-    #healthcheck:
-    #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6767/api/system/status"]
+     #  resources:
+     #    limits:
+     #      memory: 128M
+     #      cpus: "0.2"
+     #healthcheck:
+     #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6767/api/system/status"]
     #  interval: 30s
     #  timeout: 10s
     #  retries: 3
@@ -606,18 +613,19 @@ services:
         condition: service_healthy
     security_opt:
       - no-new-privileges:true
-    read_only: true
+    # read_only: true # Removed - Flaresolverr needs to write to /app/.local
     tmpfs:
       - /tmp
       - /var/tmp
+      - /app/.local # Added for Flaresolverr browser cache
     user: "1000:1000"
     #deploy:
-    #  resources:
-    #    limits:
-    #      memory: 128M
-    #      cpus: "0.2"
-    #healthcheck:
-    #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8191/v1"]
+     #  resources:
+     #    limits:
+     #      memory: 128M
+     #      cpus: "0.2"
+     #healthcheck:
+     #  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8191/v1"]
     #  interval: 30s
     #  timeout: 10s
     #  retries: 3
