@@ -38,10 +38,55 @@
     - role: deploy_compose
       tags: ['deploy', 'services']
 
+    - role: fix_permissions
+      tags: ['permissions', 'fix']
+
   post_tasks:
+    - name: Fix Jellyfin database permissions (critical for startup)
+      file:
+        path: "{{ deploy_path }}/config/jellyfin/config"
+        owner: "{{ puid | default(1000) }}"
+        group: "{{ pgid | default(1000) }}"
+        mode: '0755'
+        recurse: yes
+      tags: ['permissions', 'fix']
+
+    - name: Fix Jellyfin database files permissions
+      shell: |
+        find {{ deploy_path }}/config/jellyfin/config -type f \( -name "*.db" -o -name "*.db-shm" -o -name "*.db-wal" \) -exec chmod 664 {} \; 2>/dev/null || true
+        find {{ deploy_path }}/config/jellyfin/config -type d -exec chmod 755 {} \; 2>/dev/null || true
+      changed_when: false
+      tags: ['permissions', 'fix']
+
+    - name: Check if jellyfin-auto-collections config exists
+      stat:
+        path: "{{ deploy_path }}/config/jellyfin/jellyfin-plugins/auto-collections/config.yaml"
+      register: auto_collections_config
+      tags: ['permissions', 'fix']
+
+    - name: Verify jellyfin-auto-collections config uses localhost for Jellyfin
+      lineinfile:
+        path: "{{ deploy_path }}/config/jellyfin/jellyfin-plugins/auto-collections/config.yaml"
+        regexp: '^(\s*)server_url:\s*!ENV.*JELLYFIN_SERVER_URL.*anduin\.kooka-lake\.ts\.net'
+        line: '\1server_url: !ENV ${JELLYFIN_SERVER_URL:http://localhost:8096}'
+        backup: yes
+      when: auto_collections_config.stat.exists | default(false)
+      tags: ['permissions', 'fix']
+
+    - name: Verify jellyfin-auto-collections config uses localhost for Jellyseerr
+      lineinfile:
+        path: "{{ deploy_path }}/config/jellyfin/jellyfin-plugins/auto-collections/config.yaml"
+        regexp: '^(\s*)server_url:\s*!ENV.*JELLYSEERR_URL.*anduin\.kooka-lake\.ts\.net'
+        line: '\1server_url: !ENV ${JELLYSEERR_URL:http://localhost:5055}'
+        backup: yes
+      when: auto_collections_config.stat.exists | default(false)
+      tags: ['permissions', 'fix']
+
     - name: Display deployment summary
       debug:
         msg:
           - "✅ Arr stack deployment completed!"
           - "📊 Services: {{ deploy_path }}/{{ compose_file_name }}"
+          - "✅ Permissions fixed for Jellyfin ({{ puid | default(1000) }}:{{ pgid | default(1000) }})"
+          - "✅ Config files verified (localhost URLs)"
 

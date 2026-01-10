@@ -33,8 +33,8 @@ services:
     environment:
       - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
-      - TS_SERVE_CONFIG=/config/immich/immich.json
-      - TS_CERT_DOMAIN=immich.kooka-lake.ts.net
+      - TS_SERVE_CONFIG=/config/ts-immich.json
+      - TS_CERT_DOMAIN=moria.kooka-lake.ts.net
       - TS_USERSPACE=true
     volumes:
       - ./config/tailscale/immich:/config

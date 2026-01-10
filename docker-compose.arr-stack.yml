@@ -99,9 +99,9 @@ services:
       - /tmp
       - /var/tmp
       - /config/data/transcodes:size=2G  # 2GB RAM for transcoding cache
-    security_opt:
-      - no-new-privileges:true
-    user: "1000:1000"
+    #security_opt:
+    #  - no-new-privileges:true
+    #user: "1000:1000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8096"]
       interval: 30s
@@ -174,7 +174,7 @@ services:
     environment:
       - CRONTAB=${CRONTAB}
       - TZ=${TZ}
-      - JELLYFIN_SERVER_URL=${JELLYFIN_URL}
+      - JELLYFIN_SERVER_URL=http://localhost:8096  # Use localhost for internal container access
       - JELLYFIN_API_KEY=${JELLYFIN_API_KEY}
       - JELLYFIN_USER_ID=${JELLYFIN_USER_ID}
       - JELLYFIN_USERNAME=${JELLYFIN_USERNAME}
@@ -201,7 +201,7 @@ services:
       ts-anduin:
         condition: service_started
       jellyfin:
-        condition: service_started
+        condition: service_healthy
 
   ##############################################################################
   # VPN GATEWAY - Gluetun
