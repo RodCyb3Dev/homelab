@@ -46,10 +46,12 @@ A production-ready, maximum-security homelab infrastructure with defense-in-dept
 - [Services](#services)
 - [Configuration](#configuration)
 - [Deployment](#deployment)
+- [Jellyfin Performance Optimization](#-jellyfin-performance-optimization)
 - [Monitoring](#monitoring)
 - [Security](#security)
 - [Maintenance](#maintenance)
 - [Troubleshooting](#troubleshooting)
+- [Documentation](#-documentation)
 
 ## 🏗 Architecture
 
@@ -358,6 +360,57 @@ See [Storage Box Setup Guide](docs/STORAGE_BOX_SETUP.md) for detailed configurat
    - Save to: `config/traefik/cf_api_token.txt` (chmod 600)
 
 ### Deployment Methods
+
+#### Option 0: Automated Server & Storage Box Setup (New Servers)
+
+**Create a complete Hetzner server and Storage Box automatically:**
+
+This playbook creates a new Hetzner Cloud server, Storage Box, and configures everything with security best practices.
+
+```bash
+# Setup required variables in ansible/vault.yml
+# Get your Hetzner Cloud API token from: https://console.hetzner.cloud/
+# Required variables:
+#   - vault_hetzner_api_token (or HETZNER_API_TOKEN env var)
+#   - vault_server_name (default: "homelab-server")
+#   - vault_server_location (default: "hel1")
+#   - vault_server_type (default: "cpx22")
+#   - vault_storage_box_name (default: "homelab-storage")
+#   - vault_storage_box_type (default: "bx11")
+#   - vault_ssh_key_path (default: "~/.ssh/ansible_key.pub")
+#   - vault_deploy_user (default: "rodkode")
+
+# Or use environment variable
+export HETZNER_API_TOKEN="your-token-here"
+
+# Run the setup playbook
+make ansible-setup-server
+```
+
+**What it does:**
+
+1. ✅ **Creates Hetzner Cloud Server** via API
+   - Configures with cloud-init (Docker, Docker Compose, security hardening)
+   - Sets up SSH hardening, UFW firewall, Fail2ban
+   - Applies SOC best practices (defense-in-depth)
+
+2. ✅ **Creates Hetzner Storage Box** via API
+   - Automatically resets password and retrieves credentials
+   - Configures WebDAV mount with systemd automount
+   - Creates directory structure (movies, tv-shows, music, etc.)
+
+3. ✅ **Configures Server**
+   - Sets up Storage Box mount
+   - Configures systemd services
+   - Prepares for homelab deployment
+
+**After setup:**
+
+1. Update `ansible/inventory.yml` with the new server IP
+2. Run: `make ansible-deploy-core`
+3. Configure services
+
+**See [Server Setup Guide](ansible/playbooks/setup-server.yml) for details.**
 
 #### Option 1: Ansible (Recommended) - Infrastructure as Code
 
@@ -792,11 +845,54 @@ cat /root/.davfs2_secrets
 sudo mount.davfs https://u526046.your-storagebox.de /mnt/storagebox
 ```
 
+## 🎬 Jellyfin Performance Optimization
+
+Jellyfin has been optimized for performance on virtualized servers without hardware GPU acceleration.
+
+### Performance Features
+
+- ✅ **RAM-based Transcoding Cache** - 2GB tmpfs mount for transcoding segments (10-100x faster I/O)
+- ✅ **Optimized Software Transcoding** - Faster encoder presets, throttling, segment deletion
+- ✅ **Hardware Acceleration Support** - `/dev/dri` device mount for potential VA-API/QSV acceleration
+- ✅ **Resource Management** - CPU throttling prevents overload during transcoding
+
+### Configuration
+
+**Automatic Optimization:**
+
+```bash
+# Run optimization script (applies all settings)
+./scripts/optimize-jellyfin-transcoding.sh
+```
+
+**Manual Configuration:**
+
+1. Access Jellyfin: `https://jellyfin.kooka-lake.ts.net`
+2. Navigate to: Dashboard → Playback → Transcoding
+3. Apply settings:
+   - **Hardware acceleration**: `None` (or `VA-API` if available)
+   - **Transcoding temp path**: `/config/data/transcodes` (tmpfs)
+   - **Encoder preset**: `Very Fast`
+   - **Enable throttling**: `On`
+   - **Throttle delay**: `60 seconds`
+   - **Enable segment deletion**: `On`
+
+### Performance Tips
+
+- **Direct Play**: Use clients that support your media formats to avoid transcoding
+- **Pre-transcode**: Convert media to MP4/H.264 for better compatibility
+- **Limit Concurrent Transcodes**: Set to 2-3 for CPX21 servers (3 vCPU)
+- **Monitor Performance**: Check Dashboard → Dashboard → Active Devices for transcoding status
+
+**See [Jellyfin Performance Guide](docs/JELLYFIN_PERFORMANCE_OPTIMIZATION.md) for complete documentation.**
+
 ## 📚 Documentation
 
 - [Security Guide](docs/SECURITY.md) - Complete security documentation and checklist
 - [Media Services](docs/MEDIA_SERVICES.md) - Navidrome and Audiobookshelf setup
 - [Storage Box Setup](docs/STORAGE_BOX_SETUP.md) - Hetzner Storage Box configuration
+- [Jellyfin Performance Optimization](docs/JELLYFIN_PERFORMANCE_OPTIMIZATION.md) - Transcoding performance tuning
+- [Jellyfin Hardware Acceleration](docs/JELLYFIN_HARDWARE_ACCELERATION.md) - GPU acceleration setup
 
 ## 🤝 Contributing
 
