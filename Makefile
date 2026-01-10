@@ -219,6 +219,12 @@ ansible-vault-view: ## View Ansible vault file
 ansible-ping: ## Test Ansible connection to server
 	@set -a && . .env && set +a && cd ansible && ansible all -m ping
 
+ansible-setup-server: ## Create Hetzner server and Storage Box, then configure everything
+	@echo "🚀 Setting up new Hetzner server and Storage Box..."
+	@echo "⚠️  This will create a new server and Storage Box via Hetzner API"
+	@echo "📋 Make sure HETZNER_API_TOKEN is set in vault.yml or environment"
+	@set -a && . .env && set +a && cd ansible && ansible-playbook playbooks/setup-server.yml -v
+
 ##############################################################################
 # QA & Security Checks
 ##############################################################################

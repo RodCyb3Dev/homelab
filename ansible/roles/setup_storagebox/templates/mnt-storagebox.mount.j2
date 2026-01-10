@@ -1,0 +1,14 @@
+[Unit]
+Description=Hetzner Storage Box WebDAV Mount
+Documentation=https://docs.hetzner.com/storage/storage-box/
+After=network-online.target
+Wants=network-online.target
+
+[Mount]
+What=https://{{ storage_box_host }}
+Where=/mnt/storagebox
+Type=davfs
+Options=uid={{ deploy_user_id | default(1000) }},gid={{ deploy_group_id | default(1000) }},file_mode=0770,dir_mode=0770,noexec,nosuid,nodev,_netdev
+
+[Install]
+WantedBy=multi-user.target

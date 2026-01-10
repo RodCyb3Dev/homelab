@@ -1,0 +1,105 @@
+##############################################################################
+# SETUP STORAGE BOX ROLE - Configure Hetzner Storage Box
+# Sets up WebDAV mount, systemd services, and directory structure
+##############################################################################
+
+---
+- name: Install Storage Box dependencies
+  apt:
+    name:
+      - cifs-utils
+      - davfs2
+      - sshfs
+      - fuse3
+      - rsync
+    state: present
+    update_cache: yes
+  tags: setup_storagebox
+
+- name: Create Storage Box mount point
+  file:
+    path: /mnt/storagebox
+    state: directory
+    owner: "{{ deploy_user | default('rodkode') }}"
+    group: "{{ deploy_user | default('rodkode') }}"
+    mode: '0755'
+  tags: setup_storagebox
+
+- name: Create davfs2 secrets directory
+  file:
+    path: /etc/davfs2
+    state: directory
+    mode: '0755'
+  tags: setup_storagebox
+
+- name: Create Storage Box credentials file
+  copy:
+    dest: /etc/davfs2/secrets
+    content: |
+      {{ storage_box_host }} {{ storage_box_user | default(deploy_user) }} {{ storage_box_password }}
+    mode: '0600'
+    owner: root
+    group: root
+  when: storage_box_host is defined and storage_box_password is defined
+  tags: setup_storagebox
+
+- name: Deploy systemd mount unit
+  template:
+    src: mnt-storagebox.mount.j2
+    dest: /etc/systemd/system/mnt-storagebox.mount
+    mode: '0644'
+    owner: root
+    group: root
+  vars:
+    storage_box_host: "{{ storage_box_host }}"
+    deploy_user: "{{ deploy_user | default('rodkode') }}"
+  tags: setup_storagebox
+
+- name: Deploy systemd automount unit
+  copy:
+    src: "{{ playbook_dir }}/../systemd/mnt-storagebox.automount"
+    dest: /etc/systemd/system/mnt-storagebox.automount
+    mode: '0644'
+    owner: root
+    group: root
+  tags: setup_storagebox
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+  tags: setup_storagebox
+
+- name: Enable and start Storage Box automount
+  systemd:
+    name: mnt-storagebox.automount
+    enabled: yes
+    state: started
+  tags: setup_storagebox
+
+- name: Wait for Storage Box to be mounted
+  wait_for:
+    path: /mnt/storagebox
+    state: mounted
+  timeout: 60
+  ignore_errors: yes
+  tags: setup_storagebox
+
+- name: Create Storage Box directory structure
+  file:
+    path: "/mnt/storagebox/{{ item }}"
+    state: directory
+    owner: "{{ deploy_user | default('rodkode') }}"
+    group: "{{ deploy_user | default('rodkode') }}"
+    mode: '0755'
+  loop:
+    - movies
+    - tv-shows
+    - music
+    - audiobooks
+    - books
+    - photos
+    - home-videos
+    - backups
+    - downloads
+  when: storage_box_mounted | default(false)
+  tags: setup_storagebox

@@ -121,6 +121,7 @@ services:
       - TRAKT_CLIENT_ID=${TRAKT_CLIENT_ID}
       - TRAKT_CLIENT_SECRET=${TRAKT_CLIENT_SECRET}
       - TRAKT_LIST_ID=${TRAKT_LIST_ID}
+      - /dev/dri:/dev/dri
     volumes:
       - ./config/jellyfin/jellyseerr:/config
     #security_opt:

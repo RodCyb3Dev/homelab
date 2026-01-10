@@ -1,0 +1,193 @@
+##############################################################################
+# ANSIBLE PLAYBOOK - Complete Server Setup
+# Creates Hetzner server, Storage Box, and configures everything
+# Uses best cybersecurity & SOC practices
+##############################################################################
+
+---
+- name: Complete Homelab Server Setup
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  
+  vars_files:
+    - vault.yml
+  
+  vars:
+    hetzner_api_token: "{{ vault_hetzner_api_token | default(lookup('env', 'HETZNER_API_TOKEN')) }}"
+    server_name: "{{ vault_server_name | default('homelab-server') }}"
+    server_location: "{{ vault_server_location | default('hel1') }}"
+    server_type: "{{ vault_server_type | default('cpx22') }}"
+    server_image: "{{ vault_server_image | default('ubuntu-24.04') }}"
+    storage_box_name: "{{ vault_storage_box_name | default('homelab-storage') }}"
+    storage_box_type: "{{ vault_storage_box_type | default('bx11') }}"
+    ssh_key_path: "{{ vault_ssh_key_path | default('~/.ssh/ansible_key.pub') }}"
+    deploy_user: "{{ vault_deploy_user | default('rodkode') }}"
+    domain: "{{ vault_domain | default('rodneyops.com') }}"
+    timezone: "{{ vault_timezone | default('Europe/Helsinki') }}"
+    
+  pre_tasks:
+    - name: Validate required variables
+      assert:
+        that:
+          - hetzner_api_token is defined
+          - hetzner_api_token != ""
+        fail_msg: "Hetzner API token is required"
+        success_msg: "Required variables validated"
+      tags: always
+
+    - name: Read SSH public key
+      slurp:
+        src: "{{ ssh_key_path | expanduser }}"
+      register: ssh_public_key
+      tags: create_server
+
+    - name: Generate cloud-config user_data
+      template:
+        src: ../templates/cloud-config.yml.j2
+        dest: /tmp/cloud-config-{{ server_name }}.yml
+      vars:
+        ssh_public_key_content: "{{ ssh_public_key.content | b64decode | trim }}"
+      tags: create_server
+
+    - name: Read cloud-config
+      slurp:
+        src: "/tmp/cloud-config-{{ server_name }}.yml"
+      register: cloud_config_content
+      tags: create_server
+
+  tasks:
+    ##########################################################################
+    # STEP 1: Create Hetzner Server
+    ##########################################################################
+    - name: Create Hetzner Cloud Server
+      uri:
+        url: "https://api.hetzner.cloud/v1/servers"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ hetzner_api_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ server_name }}"
+          location: "{{ server_location }}"
+          server_type: "{{ server_type }}"
+          image: "{{ server_image }}"
+          start_after_create: true
+          ssh_keys:
+            - "{{ ssh_public_key.content | b64decode | trim }}"
+          user_data: "{{ cloud_config_content.content | b64decode }}"
+        status_code: [201, 409]
+      register: server_create_result
+      tags: create_server
+
+    - name: Wait for server to be running
+      uri:
+        url: "https://api.hetzner.cloud/v1/servers/{{ server_create_result.json.server.id }}/actions/{{ server_create_result.json.action.id }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ hetzner_api_token }}"
+      register: server_action
+      until: server_action.json.action.status == "success"
+      retries: 30
+      delay: 10
+      when: server_create_result.json.action.status == "running"
+      tags: create_server
+
+    - name: Get server IP address
+      uri:
+        url: "https://api.hetzner.cloud/v1/servers/{{ server_create_result.json.server.id }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ hetzner_api_token }}"
+      register: server_info
+      tags: create_server
+
+    - name: Wait for server to be accessible via SSH
+      wait_for:
+        host: "{{ server_info.json.server.public_net.ipv4.ip }}"
+        port: 22
+        delay: 30
+        timeout: 300
+      tags: create_server
+
+    ##########################################################################
+    # STEP 2: Create Storage Box
+    ##########################################################################
+    - name: Create Hetzner Storage Box
+      uri:
+        url: "https://api.hetzner.com/v1/storage_boxes"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ hetzner_api_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ storage_box_name }}"
+          type: "{{ storage_box_type }}"
+        status_code: [201, 409]
+      register: storage_box_create_result
+      tags: create_storage_box
+
+    - name: Get Storage Box details
+      uri:
+        url: "https://api.hetzner.com/v1/storage_boxes/{{ storage_box_create_result.json.storage_box.id }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ hetzner_api_token }}"
+      register: storage_box_info
+      tags: create_storage_box
+
+    - name: Reset Storage Box password
+      uri:
+        url: "https://api.hetzner.com/v1/storage_boxes/{{ storage_box_create_result.json.storage_box.id }}/actions/reset_password"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ hetzner_api_token }}"
+          Content-Type: "application/json"
+      register: storage_box_password_reset
+      tags: create_storage_box
+
+    ##########################################################################
+    # STEP 3: Configure Server
+    ##########################################################################
+    - name: Add server to inventory dynamically
+      add_host:
+        name: "{{ server_name }}"
+        ansible_host: "{{ server_info.json.server.public_net.ipv4.ip }}"
+        ansible_user: "{{ deploy_user }}"
+        ansible_ssh_private_key_file: "{{ ssh_key_path | regex_replace('\\.pub$', '') | expanduser }}"
+        groups: production
+        deploy_path: /opt/homelab
+        domain: "{{ domain }}"
+        timezone: "{{ timezone }}"
+        storage_box_host: "{{ storage_box_info.json.storage_box.name }}.your-storagebox.de"
+        storage_box_password: "{{ storage_box_password_reset.json.action.password | default('') }}"
+      tags: configure_server
+
+    - name: Configure server and Storage Box
+      hosts: "{{ server_name }}"
+      become: yes
+      gather_facts: yes
+      vars:
+        storage_box_host: "{{ hostvars[server_name]['storage_box_host'] }}"
+        storage_box_password: "{{ hostvars[server_name]['storage_box_password'] }}"
+        storage_box_user: "{{ hostvars[server_name]['storage_box_user'] | default(deploy_user) }}"
+        deploy_user: "{{ deploy_user }}"
+      roles:
+        - role: setup_storagebox
+          tags: ['setup_storagebox', 'configure_server']
+      tags: configure_server
+
+  post_tasks:
+    - name: Display setup summary
+      debug:
+        msg:
+          - "✅ Server setup completed successfully!"
+          - "🖥️  Server: {{ server_info.json.server.public_net.ipv4.ip }}"
+          - "📦 Storage Box: {{ storage_box_info.json.storage_box.name }}.your-storagebox.de"
+          - "🔐 Storage Box Password: {{ storage_box_password_reset.json.action.password | default('Check Hetzner Console') }}"
+          - "📝 Next steps:"
+          - "   1. Update ansible/inventory.yml with server IP"
+          - "   2. Run: make ansible-deploy-core"
+          - "   3. Configure services"

@@ -155,3 +155,27 @@
     group: deploy
     mode: '0755'
   tags: sync_config
+
+- name: Find systemd service files
+  find:
+    paths: "{{ playbook_dir }}/../systemd"
+    patterns: "*.service,*.mount,*.automount"
+    file_type: file
+  register: systemd_files_found
+  tags: sync_config
+
+- name: Deploy systemd service files
+  copy:
+    src: "{{ item.path }}"
+    dest: "/etc/systemd/system/{{ item.path | basename }}"
+    mode: '0644'
+    owner: root
+    group: root
+  loop: "{{ systemd_files_found.files }}"
+  when: systemd_files_found.files | length > 0
+  tags: sync_config
+
+- name: Reload systemd daemon after syncing services
+  systemd:
+    daemon_reload: yes
+  tags: sync_config

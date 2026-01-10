@@ -1,0 +1,36 @@
+##############################################################################
+# SYNC SYSTEMD ROLE - Synchronize systemd service files
+# Deploys systemd unit files to the server
+##############################################################################
+
+---
+- name: Ensure systemd directory exists
+  file:
+    path: /etc/systemd/system
+    state: directory
+    mode: '0755'
+  tags: sync_systemd
+
+- name: Sync systemd service files
+  copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item | basename }}"
+    mode: '0644'
+    owner: root
+    group: root
+  loop: "{{ systemd_files | default([]) }}"
+  tags: sync_systemd
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+  tags: sync_systemd
+
+- name: Enable systemd services
+  systemd:
+    name: "{{ item | basename | regex_replace('\\.service$', '') | regex_replace('\\.mount$', '') | regex_replace('\\.automount$', '') }}"
+    enabled: yes
+    state: started
+  loop: "{{ systemd_files | default([]) }}"
+  when: item | basename | regex_search('\.service$|\.mount$|\.automount$')
+  tags: sync_systemd

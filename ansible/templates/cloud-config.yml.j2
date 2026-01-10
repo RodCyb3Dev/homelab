@@ -1,0 +1,94 @@
+#cloud-config
+users:
+  - name: {{ deploy_user }}
+    groups: sudo, docker
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - {{ ssh_public_key_content }}
+    sudo: ALL=(ALL:ALL) NOPASSWD:ALL
+chpasswd:
+  users:
+    - name: {{ deploy_user }}
+      password: changeme
+      type: text
+package_update: true
+package_upgrade: true
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - software-properties-common
+  - ufw
+  - fail2ban
+  - figlet
+  - cifs-utils
+  - davfs2
+  - sshfs
+  - fuse3
+  - rsync
+  - git
+write_files:
+  - path: /etc/motd
+    content: |
+      $(figlet -w 100 KODEFLASH)
+runcmd:
+  # Docker installation
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update
+  - apt upgrade -y --allow-downgrades --allow-remove-essential --allow-change-held-packages
+  - apt-get install -y docker-ce docker-ce-cli containerd.io
+  - systemctl enable docker
+  - systemctl start docker
+  
+  # Docker Compose installation
+  - curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m) -o /usr/local/bin/docker-compose
+  - chmod +x /usr/local/bin/docker-compose
+  
+  # Create deploy user for Docker
+  - groupadd -f docker
+  - usermod -aG docker {{ deploy_user }}
+  
+  # SSH hardening (SOC best practices)
+  - sed -i '/PermitRootLogin/d' /etc/ssh/sshd_config
+  - echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+  - sed -i '/PubkeyAuthentication/d' /etc/ssh/sshd_config
+  - echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
+  - sed -i '/PasswordAuthentication/d' /etc/ssh/sshd_config
+  - echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
+  - sed -i '/PermitEmptyPasswords/d' /etc/ssh/sshd_config
+  - echo "PermitEmptyPasswords no" >> /etc/ssh/sshd_config
+  - sed -i '/X11Forwarding/d' /etc/ssh/sshd_config
+  - echo "X11Forwarding no" >> /etc/ssh/sshd_config
+  - sed -i '/MaxAuthTries/d' /etc/ssh/sshd_config
+  - echo "MaxAuthTries 3" >> /etc/ssh/sshd_config
+  - sed -i '/ClientAliveInterval/d' /etc/ssh/sshd_config
+  - echo "ClientAliveInterval 300" >> /etc/ssh/sshd_config
+  - sed -i '/ClientAliveCountMax/d' /etc/ssh/sshd_config
+  - echo "ClientAliveCountMax 2" >> /etc/ssh/sshd_config
+  - systemctl restart sshd
+  
+  # UFW firewall configuration (defense in depth)
+  - ufw --force enable
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp comment 'SSH'
+  - ufw allow 80/tcp comment 'HTTP'
+  - ufw allow 443/tcp comment 'HTTPS'
+  - ufw logging on
+  
+  # Fail2ban configuration
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+  
+  # Generate MOTD
+  - figlet -w 100 KODEFLASH > /etc/motd
+  
+  # Security: Disable root login completely
+  - passwd -l root
+  
+  # Cleanup
+  - apt autoremove -y
+  - apt clean
+
+final_message: "System configured in $UPTIME seconds"
