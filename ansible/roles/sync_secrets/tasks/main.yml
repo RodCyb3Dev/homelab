@@ -56,6 +56,25 @@
       # Note: Pangolin and Gerbil removed - using Caddy instead
       ADMIN_EMAIL: "{{ lookup('env', 'ADMIN_EMAIL') | default(vault_admin_email | default('rodney@kodeflash.dev')) }}"
       ADMIN_PASSWORD: "{{ lookup('env', 'ADMIN_PASSWORD') | default(vault_admin_password | default('')) }}"
+      # ARR Stack variables
+      CRONTAB: "{{ lookup('env', 'CRONTAB') | default(vault_crontab | default('')) }}"
+      TRAKT_CLIENT_ID: "{{ lookup('env', 'TRAKT_CLIENT_ID') | default(vault_trakt_client_id | default('')) }}"
+      TRAKT_CLIENT_SECRET: "{{ lookup('env', 'TRAKT_CLIENT_SECRET') | default(vault_trakt_client_secret | default('')) }}"
+      TRAKT_LIST_ID: "{{ lookup('env', 'TRAKT_LIST_ID') | default(vault_trakt_list_id | default('')) }}"
+      JELLYFIN_URL: "{{ lookup('env', 'JELLYFIN_URL') | default(vault_jellyfin_url | default('')) }}"
+      JELLYFIN_API_KEY: "{{ lookup('env', 'JELLYFIN_API_KEY') | default(vault_jellyfin_api_key | default('')) }}"
+      JELLYFIN_USER_ID: "{{ lookup('env', 'JELLYFIN_USER_ID') | default(vault_jellyfin_user_id | default('')) }}"
+      JELLYFIN_USERNAME: "{{ lookup('env', 'JELLYFIN_USERNAME') | default(vault_jellyfin_username | default('')) }}"
+      JELLYFIN_PASSWORD: "{{ lookup('env', 'JELLYFIN_PASSWORD') | default(vault_jellyfin_password | default('')) }}"
+      RADARR_URL: "{{ lookup('env', 'RADARR_URL') | default(vault_radarr_url | default('')) }}"
+      RADARR_API_KEY: "{{ lookup('env', 'RADARR_API_KEY') | default(vault_radarr_api_key | default('')) }}"
+      SONARR_URL: "{{ lookup('env', 'SONARR_URL') | default(vault_sonarr_url | default('')) }}"
+      SONARR_API_KEY: "{{ lookup('env', 'SONARR_API_KEY') | default(vault_sonarr_api_key | default('')) }}"
+      JELLYSEERR_SERVER_URL: "{{ lookup('env', 'JELLYSEERR_SERVER_URL') | default(vault_jellyseerr_server_url | default('')) }}"
+      JELLYSEERR_EMAIL: "{{ lookup('env', 'JELLYSEERR_EMAIL') | default(vault_jellyseerr_email | default('')) }}"
+      JELLYSEERR_USERNAME: "{{ lookup('env', 'JELLYSEERR_USERNAME') | default(vault_jellyseerr_username | default('')) }}"
+      JELLYSEERR_PASSWORD: "{{ lookup('env', 'JELLYSEERR_PASSWORD') | default(vault_jellyseerr_password | default('')) }}"
+      JELLYSEERR_USER_TYPE: "{{ lookup('env', 'JELLYSEERR_USER_TYPE') | default(vault_jellyseerr_user_type | default('local')) }}"
 
   no_log: true
   tags: sync_secrets

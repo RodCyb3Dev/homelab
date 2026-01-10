@@ -176,11 +176,7 @@ ansible-deploy-core: ## Deploy core infrastructure (Tailscale, Security, Monitor
 	@echo "Deploying core infrastructure with Ansible..."
 	@set -a && . .env && set +a && cd ansible && ansible-playbook playbook.yml -v
 
-ansible-deploy-jellyfin: ## Deploy Jellyfin stack
-	@echo "Deploying Jellyfin stack with Ansible..."
-	@set -a && . .env && set +a && cd ansible && ansible-playbook playbooks/deploy-jellyfin.yml -v
-
-ansible-deploy-arr: ## Deploy Arr stack (Gluetun + all Arr services)
+ansible-deploy-arr: ## Deploy Jellyfin, Jellyseerr,and Arr stack (Gluetun + all Arr services)
 	@echo "Deploying Arr stack with Ansible..."
 	@set -a && . .env && set +a && cd ansible && ansible-playbook playbooks/deploy-arr-stack.yml -v
 

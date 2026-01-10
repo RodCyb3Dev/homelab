@@ -17,7 +17,7 @@
     deploy_path: "{{ hostvars[inventory_hostname]['deploy_path'] | default('/opt/homelab') }}"
     compose_file_name: "docker-compose.arr-stack.yml"
     compose_file_path: "{{ deploy_path }}/{{ compose_file_name }}"
-    compose_file_requires_tailscale: true
+    compose_file_requires_tailscale: false  # ARR stack has its own Tailscale service (ts-anduin)
 
   pre_tasks:
     - name: Ensure deployment directory exists
