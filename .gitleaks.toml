@@ -40,6 +40,20 @@ regexes = [
   
   # Base64 placeholders
   '''(AKIA|ghp_|ghp_example)example''',
+  
+  # Ansible variable definitions (not actual secrets)
+  '''vault_key:\s*"[A-Z_]+"''',
+  '''name:\s*"[A-Z_]+_(SECRET|KEY|TOKEN|PASSWORD)"''',
+  '''\{.*name:.*vault_key''',
+  
+  # Authelia config file references (not actual secrets)
+  '''password:\s*"file:///run/secrets/''',
+  '''secret:\s*"file:///run/secrets/''',
+  '''encryption_key:\s*"file:///run/secrets/''',
+  
+  # Example/placeholder passwords in cleanup scripts
+  '''echo.*password:.*[A-Z0-9]{16}''',
+  '''SMTP password:.*[A-Z0-9]{16}''',
 ]
 
 # File paths to ignore
@@ -57,6 +71,8 @@ paths = [
   '''.*\.sample$''',
   '''.*\.template$''',
   '''.git/''',
+  '''scripts/cleanup-git-secrets\.sh''',  # Cleanup script contains example patterns
+  '''scripts/setup-git-hooks\.sh''',     # Hook setup script contains example patterns
 ]
 
 # Specific commit SHAs to ignore (if needed)
@@ -213,4 +229,10 @@ regexes = [
   '''\[use 'op item get''',
   '''xxx+''',
   '''your-api-key''',
+  '''file:///run/secrets/''',
+  '''vault_key:''',
+]
+paths = [
+  '''config/authelia/configuration\.yml''',  # Authelia uses Docker secrets
+  '''ansible/roles/sync_secrets/.*''',      # Ansible variable definitions
 ]
