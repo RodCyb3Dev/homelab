@@ -54,6 +54,9 @@ regexes = [
   # Example/placeholder passwords in cleanup scripts
   '''echo.*password:.*[A-Z0-9]{16}''',
   '''SMTP password:.*[A-Z0-9]{16}''',
+  
+  # Authelia config comments with example values
+  '''password:\s*"[A-Z0-9]{16}"\s*#\s*"file:///run/secrets/''',
 ]
 
 # File paths to ignore
@@ -235,4 +238,9 @@ regexes = [
 paths = [
   '''config/authelia/configuration\.yml''',  # Authelia uses Docker secrets
   '''ansible/roles/sync_secrets/.*''',      # Ansible variable definitions
+]
+
+# Specific commits to ignore (historical false positives)
+commits = [
+  "ba6e89e25303074347e202409683c06987ac61b5",  # Authelia config with comment example
 ]
