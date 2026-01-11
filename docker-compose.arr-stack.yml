@@ -294,6 +294,13 @@ services:
     volumes:
       - ./config/qbittorrent:/config
       - hetzner-media:/media
+    # Use tmpfs for incomplete downloads for better performance
+    # Incomplete torrents are written frequently, so RAM is much faster than network storage
+    # Completed downloads are moved to /media/downloads (network storage)
+    tmpfs:
+      - /tmp
+      - /var/tmp
+      - /incomplete:size=10G  # 10GB RAM for incomplete downloads (adjust based on server RAM)
     depends_on:
       gluetun:
         condition: service_healthy
