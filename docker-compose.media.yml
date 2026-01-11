@@ -1,0 +1,186 @@
+##############################################################################
+# MEDIA SERVICES - Audiobookshelf & Navidrome
+# Audiobookshelf: Audiobook and podcast server (gandalf - The Grey wizard)
+# Navidrome: Music server (bard - Bard the Bowman)
+##############################################################################
+
+volumes:
+  # Reference external hetzner-media volume
+  hetzner-media:
+    external: true
+    name: homelab_hetzner-media
+
+services:
+  ##############################################################################
+  # NETWORK GATEWAY - Tailscale for Audiobookshelf (Gandalf)
+  ##############################################################################
+
+  audiobookshelf-ts:
+    image: tailscale/tailscale:latest
+    container_name: audiobookshelf-ts
+    hostname: gandalf
+    env_file:
+      - .env
+    environment:
+      - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/ts-audiobooks.json
+      - TS_CERT_DOMAIN=gandalf.kooka-lake.ts.net
+      - TS_USERSPACE=true
+      - TS_EXTRA_ARGS=--accept-dns=false
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ./config/tailscale/audiobooks:/config
+      - ./config/tailscale/audiobooks:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "tailscale", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  ##############################################################################
+  # AUDIOBOOK SERVER - Audiobookshelf
+  ##############################################################################
+
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    container_name: audiobookshelf
+    restart: unless-stopped
+    network_mode: service:audiobookshelf-ts
+    env_file:
+      - .env
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ./config/audiobookshelf:/config
+      - hetzner-media:/audiobooks:ro  # Read-only access to audiobooks
+      - hetzner-media:/podcasts:ro    # Read-only access to podcasts
+    depends_on:
+      audiobookshelf-ts:
+        condition: service_started
+    #security_opt:
+    #  - no-new-privileges:true
+    #read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    #user: "1000:1000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:13378/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  ##############################################################################
+  # NETWORK GATEWAY - Tailscale for Navidrome (Bard)
+  ##############################################################################
+
+  navidrome-ts:
+    image: tailscale/tailscale:latest
+    container_name: navidrome-ts
+    hostname: bard
+    env_file:
+      - .env
+    environment:
+      - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/ts-music.json
+      - TS_CERT_DOMAIN=bard.kooka-lake.ts.net
+      - TS_USERSPACE=true
+      - TS_EXTRA_ARGS=--accept-dns=false
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ./config/tailscale/navidrome:/config
+      - ./config/tailscale/navidrome:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "tailscale", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  ##############################################################################
+  # MUSIC SERVER - Navidrome
+  ##############################################################################
+
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    restart: unless-stopped
+    network_mode: service:navidrome-ts
+    env_file:
+      - .env
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+      - ND_SCANSCHEDULE=1h  # Scan for new music every hour
+      - ND_LOGLEVEL=info
+      - ND_SESSIONTIMEOUT=24h
+      - ND_ENABLETRANSCODINGCONFIG=true
+      - ND_TRANSCODINGCACHESIZE=100MB
+    volumes:
+      - ./config/navidrome:/data
+      - hetzner-media:/music:ro  # Read-only access to music library
+    depends_on:
+      navidrome-ts:
+        condition: service_started
+    #security_opt:
+    #  - no-new-privileges:true
+    #read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    #user: "1000:1000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4533/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"

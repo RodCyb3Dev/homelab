@@ -188,6 +188,10 @@ ansible-deploy-pdf: ## Deploy PDF document management
 	@echo "Deploying PDF management stack with Ansible..."
 	@set -a && . .env && set +a && cd ansible && ansible-playbook playbooks/deploy-pdf.yml -v
 
+ansible-deploy-media: ## Deploy media services (Audiobookshelf & Navidrome)
+	@echo "Deploying media services stack with Ansible..."
+	@set -a && . .env && set +a && cd ansible && ansible-playbook playbooks/deploy-media.yml -v
+
 ansible-deploy-monitoring: ## Deploy monitoring stack (Prometheus, Grafana, Loki, Promtail, etc.)
 	@echo "Deploying monitoring stack with Ansible..."
 	@set -a && . .env && set +a && cd ansible && ansible-playbook playbooks/deploy-monitoring.yml -v

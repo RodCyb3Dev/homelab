@@ -13,6 +13,8 @@
     mode: '0755'
   loop:
     - tailscale
+    - tailscale/audiobooks
+    - tailscale/navidrome
     - crowdsec
     - grafana
     - grafana/provisioning
@@ -27,6 +29,8 @@
     - paperless
     - caddy
     - crowdsec
+    - audiobookshelf
+    - navidrome
   tags: sync_config
 
 - name: Sync docker-compose.yml (core)
@@ -83,6 +87,15 @@
   when: compose_file_name | default('') == 'docker-compose.monitoring.yml' or compose_file_name | default('') == ''
   tags: sync_config
 
+- name: Sync docker-compose.media.yml
+  synchronize:
+    src: "{{ playbook_dir }}/../docker-compose.media.yml"
+    dest: "{{ deploy_path }}/docker-compose.media.yml"
+    mode: push
+    perms: yes
+  when: compose_file_name | default('') == 'docker-compose.media.yml' or compose_file_name | default('') == ''
+  tags: sync_config
+
 - name: Check which docker-compose files exist
   stat:
     path: "{{ deploy_path }}/{{ item }}"
@@ -94,6 +107,7 @@
     - docker-compose.immich.yml
     - docker-compose.pdf.yml
     - docker-compose.monitoring.yml
+    - docker-compose.media.yml
   tags: sync_config
 
 - name: Set ownership of docker-compose files

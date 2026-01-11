@@ -8,14 +8,14 @@
     "gandalf.kooka-lake.ts.net:80": {
       "Handlers": {
         "/": {
-          "Proxy": "http://127.0.0.1:8096"
+          "Proxy": "http://127.0.0.1:13378"
         }
       }
     },
-    "agandalf.kooka-lake.ts.net:443": {
+    "gandalf.kooka-lake.ts.net:443": {
       "Handlers": {
         "/": {
-          "Proxy": "http://127.0.0.1:8096"
+          "Proxy": "http://127.0.0.1:13378"
         }
       }
     }
