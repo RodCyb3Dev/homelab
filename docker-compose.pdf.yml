@@ -288,10 +288,7 @@ services:
       - TZ=${TZ:-UTC}
     # Check folder permissions: chmod -R 755 ./stirling-data
     volumes:
-      - stirling-data/tessdata:/usr/share/tessdata  # OCR language files
-      - stirling-data/configs:/configs               # Settings & database
-      - stirling-data/logs:/logs                     # Application logs
-      - stirling-data/pipeline:/pipeline             # Automation configs
+      - stirling-data:/usr/src/stirling/data  # All Stirling data (tessdata, configs, logs, pipeline)
       - hetzner-media:/documents:ro
     depends_on:
       stirling-db:
