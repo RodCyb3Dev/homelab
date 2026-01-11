@@ -5,10 +5,8 @@
 ##############################################################################
 
 volumes:
-  # Reference external hetzner-media volume
-  hetzner-media:
-    external: true
-    name: homelab_hetzner-media
+  # Audiobookshelf internal volumes
+  audiobookshelf-metadata:  # Cache, streams, covers, downloads, backups, logs
 
 services:
   ##############################################################################
@@ -69,10 +67,13 @@ services:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-UTC}
+      - PORT=80
+      - HOST=0.0.0.0  # Bind to all interfaces (IPv4 and IPv6)
     volumes:
-      - ./config/audiobookshelf:/config
-      - hetzner-media:/audiobooks:ro  # Read-only access to audiobooks
-      - hetzner-media:/podcasts:ro    # Read-only access to podcasts
+      - ./config/audiobookshelf:/config  # Database (users/books/libraries/settings)
+      - audiobookshelf-metadata:/metadata  # Cache, streams, covers, downloads, backups, logs
+      - /mnt/storagebox/audiobooks:/audiobooks:ro  # Read-only access to audiobooks
+      - /mnt/storagebox/podcasts:/podcasts:ro    # Read-only access to podcasts
     depends_on:
       audiobookshelf-ts:
         condition: service_started
@@ -84,7 +85,7 @@ services:
       - /var/tmp
     #user: "1000:1000"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:13378/api/status"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/api/status"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -154,14 +155,30 @@ services:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-UTC}
-      - ND_SCANSCHEDULE=1h  # Scan for new music every hour
+      # Network configuration
+      - ND_PORT=4533
+      - ND_ADDRESS=0.0.0.0  # Bind to all interfaces (IPv4 and IPv6)
+      - ND_MUSICFOLDER=/music  # Explicitly set music folder path
+      # Scanner configuration
+      - ND_SCANNER_SCHEDULE=@every 1h  # Scan for new music every hour (Cron syntax)
+      - ND_SCANNER_SCANONSTARTUP=true  # Scan library on startup
+      - ND_SCANNER_WATCHERWAIT=5s  # Wait 5s after file change before scanning (avoids incomplete files)
+      # Logging
       - ND_LOGLEVEL=info
+      # Session management
       - ND_SESSIONTIMEOUT=24h
+      # Transcoding configuration
       - ND_ENABLETRANSCODINGCONFIG=true
       - ND_TRANSCODINGCACHESIZE=100MB
+      - ND_ENABLETRANSCODINGCANCELLATION=true  # Stop transcoding when client disconnects (saves resources)
+      # Cache configuration
+      - ND_IMAGECACHESIZE=100MB  # Image (cover art) cache size
+      # Feature flags
+      - ND_ENABLEDOWNLOADS=true  # Enable music downloads in UI
+      - ND_ENABLESHARING=false  # Disable sharing (can enable if needed)
     volumes:
       - ./config/navidrome:/data
-      - hetzner-media:/music:ro  # Read-only access to music library
+      - /mnt/storagebox/music:/music:ro  # Read-only access to music library
     depends_on:
       navidrome-ts:
         condition: service_started

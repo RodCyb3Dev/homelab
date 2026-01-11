@@ -31,6 +31,7 @@
     - crowdsec
     - audiobookshelf
     - navidrome
+    - lazylibrarian
   tags: sync_config
 
 - name: Sync docker-compose.yml (core)
@@ -155,12 +156,24 @@
       - "--exclude=*.txt"
       - "--include=**/requirements.txt"
       - "--include=**/Dockerfile"
+      - "--include=**/config.ini"  # Include LazyLibrarian config.ini
       - "--exclude=*.key"
       - "--exclude=*.pem"
       - "--exclude=*.crt"
       - "--exclude=traefik/"
       - "--exclude=pangolin/"
       - "--update"
+  tags: sync_config
+
+- name: Ensure LazyLibrarian config.ini exists (create from template if missing)
+  copy:
+    src: "{{ inventory_dir }}/../config/lazylibrarian/config.ini"
+    dest: "{{ deploy_path }}/config/lazylibrarian/config.ini"
+    owner: deploy
+    group: deploy
+    mode: '0644'
+    backup: yes
+  when: inventory_dir is defined
   tags: sync_config
 
 - name: Ensure Immich config directory exists

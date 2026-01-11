@@ -111,11 +111,22 @@
       when: auto_collections_config.stat.exists | default(false)
       tags: ['permissions', 'fix']
 
+    - name: Fix LazyLibrarian cache directory permissions (critical for Mako templates)
+      file:
+        path: "{{ deploy_path }}/config/lazylibrarian/cache"
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: '0777'  # LazyLibrarian needs write access for Mako template cache
+        recurse: yes
+      tags: ['permissions', 'fix']
+
     - name: Display deployment summary
       debug:
         msg:
           - "✅ Arr stack deployment completed!"
           - "📊 Services: {{ deploy_path }}/{{ compose_file_name }}"
           - "✅ Permissions fixed for Jellyfin ({{ puid | default(1000) }}:{{ pgid | default(1000) }})"
+          - "✅ LazyLibrarian cache permissions fixed (777 for Mako templates)"
           - "✅ Config files verified (localhost URLs)"
 

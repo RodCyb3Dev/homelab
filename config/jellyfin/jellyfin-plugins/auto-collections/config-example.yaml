@@ -1,0 +1,101 @@
+# Note: the !ENV ${VAR:default} syntax is some syntactic sugar used by https://pypi.org/project/pyaml-env/
+# This allows variables to be passed through either in this config file or as environment variables
+#
+crontab: !ENV ${CRONTAB:0 22 * * *}   # If set, this runs the script on a schedule. Should be in crontab format e.g. `0 0 5 * *`
+timezone: !ENV ${TZ:Europe/Helsinki}   # Timezone the crontab operates on.
+jellyfin:
+  server_url: !ENV ${JELLYFIN_SERVER_URL:http://localhost:8096}
+  api_key: !ENV ${JELLYFIN_API_KEY}         # Create an API key by going to: Admin>Dashboard>Advanced>API Keys
+  user_id: !ENV ${JELLYFIN_USER_ID}         #ID of your jellyfin user. Found in the URL when you navigate to your user in the Dashboard.
+
+jellyseerr:
+  server_url: !ENV ${JELLYSEERR_URL:http://localhost:5055}
+  email: !ENV ${JELLYSEERR_EMAIL}
+  username: !ENV ${JELLYSEERR_USERNAME}
+  password: !ENV ${JELLYSEERR_PASSWORD}
+  user_type: !ENV ${JELLYSEERR_USER_TYPE:local}
+
+plugins:
+  imdb_chart:
+    enabled: true
+    list_ids:
+      - top
+      - boxoffice
+      - moviemeter
+      - tvmeter
+    clear_collection: true   # If set, this empties out the collection before re-adding. Useful for lists which change often.
+  imdb_list:
+    enabled: true
+    list_ids:
+      - ls055592025
+      - ls068305490
+      - ls087301829
+  letterboxd:
+    enabled: true
+    imdb_id_filter: true # Uses the imdb id for better matching. This does slow the script down though!
+    list_ids:
+      - fcbarcelona/list/movies-everyone-should-watch-at-least-once
+      - dave/list/official-top-250-narrative-feature-films
+  mdblist:
+    enabled: false
+    list_ids:
+      - hdlists/crazy-plot-twists
+  tspdt:
+    enabled: true
+    list_ids:
+      - 1000-greatest-films
+  trakt:
+    enabled: true
+    list_ids:
+      # Your personal Trakt lists
+      - zakirpokrovskii/watchlist  # Your Trakt watchlist
+      - zakirpokrovskii/favorites  # Your Trakt favorites list
+      # Built-in Trakt charts - Movies
+      - "movies/trending"          # The most watched movies right now
+      - "movies/popular"           # The most popular movies of all time
+      - "movies/boxoffice"         # Top 10 movies in the US box office last weekend
+      - "movies/anticipated"       # Most anticipated movies based on lists
+      # Built-in Trakt charts - TV Shows
+      - "shows/trending"           # The most watched shows right now
+      - "shows/popular"            # The most popular shows of all time
+      - "shows/anticipated"        # Most anticipated shows based on lists
+    client_id: !ENV ${TRAKT_CLIENT_ID} # Trakt API client ID. Create an app at https://trakt.tv/oauth/applications/new and copy the client ID
+    client_secret: !ENV ${TRAKT_CLIENT_SECRET} # Trakt API client secret. Create an app at https://trakt.tv/oauth/applications/new and copy the client secret
+  arr:
+    enabled: false
+    server_configs:
+      - base_url: !ENV ${RADARR_URL:https://anduin.kooka-lake.ts.net:7878} # Radarr
+        api_key: !ENV ${RADARR_API_KEY}
+      - base_url: !ENV ${SONARR_URL:https://anduin.kooka-lake.ts.net:8989} # Sonarr
+        api_key: !ENV ${SONARR_API_KEY}
+    list_ids:
+      - my_tag
+  jellyfin_api:
+    enabled: false
+    list_ids:
+      - minCriticRating: ["9"]
+        limit: ["3"]
+        sortBy: ["Random"]
+        includeItemTypes: ["Movie"]
+        list_name: "Random Highly-Rated Movies" # Optional human-readable collection name
+        list_desc: "A random selection of highly popular movies"
+      - genres: ["Mystery"]
+  popular_movies: # popular-movies-data.stevenlu.com
+    enabled: false
+    list_ids:
+      - movies
+  criterion_channel:
+    enabled: false
+    list_ids:
+      - hong-kong-hits
+      - british-new-wave
+  listmania:
+    enabled: false
+    list_ids:
+      - wonderful-movies-you-might-have-missed
+      - 40-must-have-mafiacrime-movies
+  bfi:
+    enabled: true
+    list_ids:
+      - 10-great-films-featuring-dual-performances
+      - 5-things-watch-this-weekend-24-26-january-2025

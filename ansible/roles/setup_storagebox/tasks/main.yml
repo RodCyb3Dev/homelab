@@ -101,5 +101,7 @@
     - home-videos
     - backups
     - downloads
+    - media
+    - podcasts
   when: storage_box_mounted | default(false)
   tags: setup_storagebox

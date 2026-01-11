@@ -78,9 +78,54 @@
     mode: '0755'
   tags: fix_permissions
 
+- name: Ensure LazyLibrarian config directory exists
+  file:
+    path: "{{ deploy_path }}/config/lazylibrarian"
+    state: directory
+    owner: deploy
+    group: deploy
+    mode: '0755'
+  tags: fix_permissions
+
+- name: Ensure LazyLibrarian cache directory exists and is writable
+  file:
+    path: "{{ deploy_path }}/config/lazylibrarian/cache"
+    state: directory
+    owner: deploy
+    group: deploy
+    mode: '0777'  # LazyLibrarian needs write access for Mako template cache
+    recurse: yes
+  tags: fix_permissions
+
+            - name: Fix LazyLibrarian database permissions
+              shell: |
+                find {{ deploy_path }}/config/lazylibrarian -type f \( -name "*.db" -o -name "*.db-shm" -o -name "*.db-wal" \) -exec chmod 664 {} \; 2>/dev/null || true
+                find {{ deploy_path }}/config/lazylibrarian -type d -exec chmod 755 {} \; 2>/dev/null || true
+              changed_when: false
+              tags: fix_permissions
+
+            - name: Fix LazyLibrarian Mako cache directory permissions (critical for compiled templates)
+              file:
+                path: "{{ deploy_path }}/config/lazylibrarian/cache/mako"
+                state: directory
+                owner: "{{ puid | default(1000) }}"
+                group: "{{ pgid | default(1000) }}"
+                mode: '0777'  # Mako needs write access to compile templates
+                recurse: yes
+              tags: fix_permissions
+
+            - name: Fix LazyLibrarian Mako cache file permissions (critical for compiled templates)
+              shell: |
+                find {{ deploy_path }}/config/lazylibrarian/cache/mako -type f -exec chmod 666 {} \; 2>/dev/null || true
+                find {{ deploy_path }}/config/lazylibrarian/cache/mako -type d -exec chmod 777 {} \; 2>/dev/null || true
+                chown -R {{ puid | default(1000) }}:{{ pgid | default(1000) }} {{ deploy_path }}/config/lazylibrarian/cache/mako 2>/dev/null || true
+              changed_when: false
+              tags: fix_permissions
+
 - name: Display permissions fix summary
   debug:
     msg:
       - "✅ Jellyfin permissions fixed (owner: {{ puid | default(1000) }}:{{ pgid | default(1000) }})"
       - "✅ jellyfin-auto-collections config verified (localhost URLs)"
       - "✅ jellyseerr config directory permissions set"
+      - "✅ LazyLibrarian cache directory permissions set (777 for Mako templates)"

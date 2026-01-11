@@ -5,7 +5,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Mount]
-What=https://u526046.your-storagebox.de
+What=https://u529830.your-storagebox.de
 Where=/mnt/storagebox
 Type=davfs
 Options=uid=1000,gid=1000,file_mode=0770,dir_mode=0770,noexec,nosuid,nodev,_netdev

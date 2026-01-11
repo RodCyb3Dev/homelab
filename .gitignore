@@ -136,7 +136,9 @@ config/immich/backup.sh
 
 # Jellyfin
 config/jellyfin/*
-!config/jellyfin/jellyfin-plugins/auto-collections
+!config/jellyfin/jellyfin-plugins/
+!config/jellyfin/jellyfin-plugins/auto-collections/
+!config/jellyfin/jellyfin-plugins/auto-collections/**
 
 ##############################################################################
 # DOCKER & CONTAINERS
@@ -253,3 +255,5 @@ $RECYCLE.BIN/
 [._]sw[a-p]
 Session.vim
 config/pangolin/key
+Library.xml
+scripts/*-music-metadata.py
