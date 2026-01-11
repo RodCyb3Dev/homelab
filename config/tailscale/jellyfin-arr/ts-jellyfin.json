@@ -52,7 +52,7 @@
     "anduin.kooka-lake.ts.net:5055": {
       "Handlers": {
         "/": {
-          "Proxy": "http://127.0.0.1:5055"
+          "Proxy": "http://[::1]:5055"
         }
       }
     },
