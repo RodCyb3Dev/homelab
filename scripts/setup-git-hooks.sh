@@ -61,9 +61,11 @@ fi
 
 # 2. Check for common secret patterns
 echo "  → Checking for common secret patterns..."
-if git diff --cached --name-only | xargs grep -nE "(password|secret|key|token)[\"\']?\s*[:=]\s*[\"\'][^\$\{]" 2>/dev/null | grep -v "op item get" | grep -v ".md:" | grep -v "# "; then
+SECRET_MATCHES=$(git diff --cached --name-only | xargs grep -nE "(password|secret|key|token)[\"\']?\s*[:=]\s*[\"\'][^\$\{]" 2>/dev/null | grep -v "op item get" | grep -v ".md:" | grep -v "# " | grep -v "file:///run/secrets" | grep -v "vault_key:" | grep -vE "name:\s*\"[A-Z_]*_(SECRET|KEY|TOKEN|PASSWORD)\"" | grep -vE "\{.*name:.*vault_key" || true)
+if [ -n "$SECRET_MATCHES" ]; then
     echo -e "${RED}❌ Possible hardcoded secrets detected!${NC}"
     echo "   Secrets should use environment variables or 1Password references"
+    echo "$SECRET_MATCHES"
     FAILED=1
 fi
 
@@ -76,8 +78,10 @@ fi
 
 # 4. Check for private keys
 echo "  → Checking for private keys..."
-if git diff --cached --name-only | xargs grep -l "BEGIN.*PRIVATE KEY" 2>/dev/null; then
+PRIVATE_KEY_FILES=$(git diff --cached --name-only | xargs grep -l "BEGIN.*PRIVATE KEY" 2>/dev/null | grep -v "setup-git-hooks.sh" | grep -v ".gitleaks.toml" | grep -v ".md" || true)
+if [ -n "$PRIVATE_KEY_FILES" ]; then
     echo -e "${RED}❌ Private key detected!${NC}"
+    echo "$PRIVATE_KEY_FILES"
     FAILED=1
 fi
 

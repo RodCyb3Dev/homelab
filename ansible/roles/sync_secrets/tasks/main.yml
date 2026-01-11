@@ -217,5 +217,3 @@
   tags: sync_secrets
 
 # Note: Pangolin config variables removed - no longer needed with Caddy
-  no_log: true
-  tags: sync_secrets
