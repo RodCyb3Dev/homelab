@@ -13,6 +13,9 @@ volumes:
   paperless-data:
   paperless-db:
   paperless-redis-data:
+  stirling-data:
+  stirling-db:
+  stirling-redis-data:
 
 services:
   ##############################################################################
@@ -172,3 +175,105 @@ services:
         max-size: "10m"
         max-file: "3"
         compress: "true"
+
+  ##############################################################################
+  # PDF MANAGEMENT - Stirling-pdf
+  ##############################################################################
+
+  stirling-ts:
+    image: tailscale/tailscale:latest
+    container_name: stirling-ts
+    hostname: orthanc
+    env_file:
+      - .env
+    environment:
+      - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/tailscale/stirling-pdf/ts-stirling-pdf.json
+      - TS_CERT_DOMAIN=orthanc.kooka-lake.ts.net
+      - TS_USERSPACE=true
+    volumes:
+      - ./config/tailscale/stirling-pdf:/config
+      - ./config/tailscale/stirling-pdf:/var/lib/tailscale
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "tailscale", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  ##############################################################################
+  # PDF MANAGEMENT - Stirling-pdf
+  ##############################################################################
+
+  # Backend - PDF processing engine
+  stirling-backend:
+    image: stirlingtools/stirling-pdf:latest
+    container_name: stirling-backend
+    restart: unless-stopped
+    networks: service:stirling-ts
+    env_file:
+      - .env
+    environment:
+      - SECURITY_ENABLELOGIN=true
+      - LANGS=en,fi
+      - MODE=BACKEND
+      - TZ=${TZ:-UTC}
+    # Check folder permissions: chmod -R 755 ./stirling-data
+    volumes:
+      - stirling-data/tessdata:/usr/share/tessdata  # OCR language files
+      - stirling-data/configs:/configs               # Settings & database
+      - stirling-dat/logs:/logs                     # Application logs
+      - stirling-data/pipeline:/pipeline             # Automation configs
+      - hetzner-media:/documents:ro
+    depends_on:
+      stirling-db:
+        condition: service_healthy
+      stirling-redis:
+        condition: service_healthy
+    #security_opt:
+    #  - no-new-privileges:true
+    #read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    #user: "1000:1000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/api/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  # Frontend - PDF viewer
+  stirling-pdf-frontend:
+    image: stirlingtools/stirling-pdf-frontend:latest
+    container_name: stirling-frontend
+    restart: unless-stopped
+    networks: service:stirling-ts
+    env_file:
+      - .env
+    environment:
+      - SECURITY_ENABLELOGIN=true
+      - MODE=FRONTEND
+      - LANGS=en,fi
+      - TZ=${TZ:-UTC}
+      - VITE_API_BASE_URL=http://stirling-backend:8080
+    volumes:
+      - stirling-data:/usr/src/stirling/data

@@ -1,0 +1,35 @@
+{
+  "TCP": {
+    "443": {
+      "HTTPS": true
+    }
+  },
+  "Web": {
+    "orthanc.kooka-lake.ts.net:443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://127.0.0.1:8000"
+        }
+      }
+    },
+    "orthanc.kooka-lake.ts.net:80": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://127.0.0.1:8000"
+        }
+      }
+    },
+    "orthanc.kooka-lake.ts.net:8081": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://127.0.0.1:8081"
+        }
+      }
+    }
+  },
+  "AllowFunnel": {
+    "orthanc.kooka-lake.ts.net:443": false,
+    "orthanc.kooka-lake.ts.net:80": false,
+    "orthanc.kooka-lake.ts.net:8081": false
+  }
+}
