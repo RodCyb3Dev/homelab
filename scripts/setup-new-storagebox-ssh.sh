@@ -41,7 +41,7 @@ fi
 echo ""
 echo -e "${GREEN}📋 Step 1: Verify SSH key exists on server...${NC}"
 
-ssh root@${SERVER_IP} bash << EOF
+ssh root@${SERVER_IP} bash << 'EOF'
 # Check if key exists
 if [ ! -f ${SSH_KEY_PATH} ]; then
     echo "❌ SSH key not found. Generating..."
@@ -86,7 +86,7 @@ if ssh root@${SERVER_IP} "ssh -i ${SSH_KEY_PATH} -p 23 -o StrictHostKeyChecking=
     # Test SSHFS mount
     echo -e "${GREEN}📋 Step 4: Testing SSHFS mount...${NC}"
     
-    ssh root@${SERVER_IP} bash << EOF
+    ssh root@${SERVER_IP} bash << 'EOF'
         MOUNT_POINT="/mnt/storagebox-new"
         
         # Create mount point

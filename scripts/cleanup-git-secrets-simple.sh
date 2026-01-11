@@ -54,6 +54,7 @@ echo ""
 echo -e "${GREEN}📋 Step 1: Creating backup...${NC}"
 
 # Get current branch
+# shellcheck disable=SC2034
 CURRENT_BRANCH=$(git branch --show-current)
 BACKUP_BRANCH="backup-before-cleanup-$(date +%Y%m%d-%H%M%S)"
 

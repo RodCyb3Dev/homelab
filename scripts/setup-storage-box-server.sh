@@ -4,6 +4,7 @@
 set -e
 
 # Colors
+# shellcheck disable=SC2034
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -16,6 +17,7 @@ STORAGE_BOX_USER="u526046"
 MOUNT_POINT="/mnt/storagebox"
 
 # Check for dry-run mode
+# shellcheck disable=SC2034
 DRY_RUN=false
 if [[ "$1" == "--dry-run" ]] || [[ "$1" == "-n" ]]; then
     DRY_RUN=true
@@ -92,7 +94,7 @@ EOF
 echo ""
 echo -e "${GREEN}📋 Step 5: Adding to /etc/fstab...${NC}"
 
-ssh root@${SERVER_IP} bash << EOF
+ssh root@${SERVER_IP} bash << 'EOF'
 # Check if already in fstab
 if grep -q "storagebox" /etc/fstab; then
     echo "⚠️  Entry already exists in fstab, removing old entry..."
@@ -135,7 +137,7 @@ echo "$CURRENT_CONTENTS"
 echo ""
 echo -e "${GREEN}📋 Step 6: Creating media directory structure...${NC}"
 
-ssh root@${SERVER_IP} bash << EOF
+ssh root@${SERVER_IP} bash << 'EOF'
 # Create directories for media services
 mkdir -p ${MOUNT_POINT}/music
 mkdir -p ${MOUNT_POINT}/audiobooks

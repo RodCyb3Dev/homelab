@@ -4,6 +4,7 @@
 set -e
 
 # Colors
+# shellcheck disable=SC2034
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -76,7 +77,7 @@ if [ "$SERVER_MODE" = true ]; then
     echo -e "${GREEN}✅ Storage Box mount service enabled and started${NC}"
 else
     # From local machine
-    ssh root@${SERVER_IP} bash << EOF
+    ssh root@${SERVER_IP} bash << 'EOF'
         systemctl daemon-reload
         echo "✅ Systemd daemon reloaded"
 

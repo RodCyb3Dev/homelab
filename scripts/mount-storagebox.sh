@@ -18,7 +18,8 @@ else
 fi
 
 # Mount using credentials
-echo "$USERNAME" | mount.davfs "$STORAGE_BOX_URL" "$MOUNT_POINT" \
-    -o uid=1000,gid=1000,file_mode=0770,dir_mode=0770,noexec,nosuid,nodev <<< "$PASSWORD"
+# Use printf to avoid redirection override issue with pipe
+printf '%s\n%s\n' "$USERNAME" "$PASSWORD" | mount.davfs "$STORAGE_BOX_URL" "$MOUNT_POINT" \
+    -o uid=1000,gid=1000,file_mode=0770,dir_mode=0770,noexec,nosuid,nodev
 
 exit $?

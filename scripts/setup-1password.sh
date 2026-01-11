@@ -60,7 +60,7 @@ echo -e "${YELLOW}Signing into 1Password...${NC}"
 echo "Please follow the prompts to sign in."
 echo ""
 
-eval $(op signin)
+eval "$(op signin)"
 
 echo -e "${GREEN}✅ Signed into 1Password${NC}"
 echo ""

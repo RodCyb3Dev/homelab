@@ -6,6 +6,7 @@
 
 set -e
 
+# shellcheck disable=SC2034
 HOMELAB_DIR="/opt/homelab"
 SSH_KEY="${SSH_KEY:-~/.ssh/ansible_key}"
 SSH_USER="${SSH_USER:-rodkode}"
