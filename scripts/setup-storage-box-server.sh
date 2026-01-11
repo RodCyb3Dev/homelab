@@ -17,13 +17,15 @@ STORAGE_BOX_USER="u526046"
 MOUNT_POINT="/mnt/storagebox"
 
 # Check for dry-run mode
-# shellcheck disable=SC2034
 DRY_RUN=false
 if [[ "$1" == "--dry-run" ]] || [[ "$1" == "-n" ]]; then
     DRY_RUN=true
     echo -e "${YELLOW}🧪 DRY-RUN MODE - No changes will be made${NC}"
     echo ""
 fi
+
+# Export DRY_RUN for use in conditional commands (even if not used in this script)
+export DRY_RUN
 
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BLUE}🗄️  Hetzner Storage Box Setup${NC}"
