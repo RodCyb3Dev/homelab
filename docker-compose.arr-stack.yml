@@ -376,6 +376,52 @@ services:
         compress: "true"
 
   ##############################################################################
+  # TORRENT INDEXER - Jackett
+  ##############################################################################
+
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: jackett
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    env_file:
+      - .env
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+      - AUTO_UPDATE=true
+    volumes:
+      - ./config/jackett:/config
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    #security_opt:
+    #  - no-new-privileges:true
+    #read_only: true
+    #tmpfs:
+    #  - /tmp
+    #  - /var/tmp
+    #  - /run # Added for s6-overlay (needs to be writable)
+    #user: "1000:1000"
+    #deploy:
+     #  resources:
+     #    limits:
+     #      memory: 128M
+     #      cpus: "0.3"
+    healthcheck:
+      test: ["CMD", "ping", "-c", "1", "127.0.0.1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  ##############################################################################
   # MOVIE MANAGER - Radarr
   ##############################################################################
 
