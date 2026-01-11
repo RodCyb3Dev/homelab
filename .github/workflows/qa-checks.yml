@@ -26,23 +26,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}  # Optional: for pro features
 
-      - name: Run TruffleHog
-        id: trufflehog
-        run: |
-          echo "Running TruffleHog secret scan..."
-          # For first push (BASE = HEAD), scan entire repository
-          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ] || [ "${{ github.event.before }}" = "" ]; then
-            echo "First push detected, scanning entire repository..."
-            docker run --rm -v "$PWD:/pwd" -w /pwd trufflesecurity/trufflehog:latest \
-              filesystem /pwd --only-verified --json || true
-          else
-            echo "Scanning diff between ${{ github.event.before }} and HEAD..."
-            docker run --rm -v "$PWD:/pwd" -w /pwd trufflesecurity/trufflehog:latest \
-              github --repo="${{ github.repository }}" \
-              --base="${{ github.event.before }}" \
-              --head=HEAD \
-              --only-verified --json || true
-          fi
+      - name: Run TruffleHog (filesystem scan for first push)
+        if: github.event.before == '0000000000000000000000000000000000000000' || github.event.before == ''
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          extra_args: --only-verified
+
+      - name: Run TruffleHog (diff scan for subsequent pushes)
+        if: github.event.before != '0000000000000000000000000000000000000000' && github.event.before != ''
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.before }}
+          head: HEAD
+          extra_args: --only-verified
         continue-on-error: true
 
   # ===========================================================================
