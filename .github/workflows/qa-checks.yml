@@ -27,13 +27,23 @@ jobs:
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}  # Optional: for pro features
 
       - name: Run TruffleHog
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          base: ${{ github.event.before || 'HEAD~1' }}
-          head: HEAD
-          extra_args: --only-verified
-        continue-on-error: true  # Allow to continue if BASE and HEAD are same (first push)
+        id: trufflehog
+        run: |
+          echo "Running TruffleHog secret scan..."
+          # For first push (BASE = HEAD), scan entire repository
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ] || [ "${{ github.event.before }}" = "" ]; then
+            echo "First push detected, scanning entire repository..."
+            docker run --rm -v "$PWD:/pwd" -w /pwd trufflesecurity/trufflehog:latest \
+              filesystem /pwd --only-verified --json || true
+          else
+            echo "Scanning diff between ${{ github.event.before }} and HEAD..."
+            docker run --rm -v "$PWD:/pwd" -w /pwd trufflesecurity/trufflehog:latest \
+              github --repo="${{ github.repository }}" \
+              --base="${{ github.event.before }}" \
+              --head=HEAD \
+              --only-verified --json || true
+          fi
+        continue-on-error: true
 
   # ===========================================================================
   # PRETTIER - Code Formatting Check
