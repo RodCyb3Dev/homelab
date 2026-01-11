@@ -94,7 +94,7 @@
     "anduin.kooka-lake.ts.net:9117": {
       "Handlers": {
         "/": {
-          "Proxy": "http://172.25.0.2:9696"
+          "Proxy": "http://172.25.0.2:9117"
         }
       }
     },
