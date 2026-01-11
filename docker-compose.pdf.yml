@@ -29,7 +29,7 @@ services:
     env_file:
       - .env
     environment:
-      - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
+      - TS_AUTHKEY=${TAILSCALE_AUTH_KEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_SERVE_CONFIG=/config/tailscale/paperless/ts-paperless.json
       - TS_CERT_DOMAIN=pdf.kooka-lake.ts.net
@@ -187,7 +187,7 @@ services:
     env_file:
       - .env
     environment:
-      - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
+      - TS_AUTHKEY=${TAILSCALE_AUTH_KEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_SERVE_CONFIG=/config/tailscale/stirling-pdf/ts-stirling-pdf.json
       - TS_CERT_DOMAIN=orthanc.kooka-lake.ts.net

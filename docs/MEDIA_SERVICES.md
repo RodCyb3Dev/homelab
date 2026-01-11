@@ -64,7 +64,7 @@ The Storage Box should be organized as follows:
      ```
 
 2. **Tailscale Auth Key:**
-   - Ensure `TAILSCALE_AUTHKEY` is set in `.env` or `ansible/vault.yml`
+   - Ensure `TAILSCALE_AUTH_KEY` is set in `.env` or `ansible/vault.yml`
 
 3. **Storage Box Structure:**
    - Create directories on the Storage Box:
@@ -284,7 +284,7 @@ Each service uses `network_mode: service:<tailscale-container>` for:
    ```
 
 2. **Verify Auth Key:**
-   - Ensure `TAILSCALE_AUTHKEY` is set in `.env` or `ansible/vault.yml`
+   - Ensure `TAILSCALE_AUTH_KEY` is set in `.env` or `ansible/vault.yml`
 
 3. **Check Tailscale Console:**
    - Visit https://login.tailscale.com/admin/machines

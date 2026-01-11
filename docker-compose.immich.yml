@@ -31,7 +31,7 @@ services:
     env_file:
       - .env
     environment:
-      - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
+      - TS_AUTHKEY=${TAILSCALE_AUTH_KEY}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_SERVE_CONFIG=/config/ts-immich.json
       - TS_CERT_DOMAIN=moria.kooka-lake.ts.net
