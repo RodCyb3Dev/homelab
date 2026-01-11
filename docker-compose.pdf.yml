@@ -63,7 +63,7 @@ services:
     image: postgres:15-alpine
     container_name: paperless-db
     restart: unless-stopped
-    networks: service:paperless-ts
+    network_mode: service:paperless-ts
     environment:
       - POSTGRES_USER=paperless
       - POSTGRES_PASSWORD=${PAPERLESS_DB_PASSWORD:-paperless}
@@ -126,7 +126,7 @@ services:
     image: ghcr.io/paperless-ngx/paperless-ngx:latest
     container_name: paperless
     restart: unless-stopped
-    networks: service:paperless-ts
+    network_mode: service:paperless-ts
     env_file:
       - .env
     environment:
@@ -222,7 +222,7 @@ services:
     image: stirlingtools/stirling-pdf:latest
     container_name: stirling-backend
     restart: unless-stopped
-    networks: service:stirling-ts
+    network_mode: service:stirling-ts
     env_file:
       - .env
     environment:
@@ -234,7 +234,7 @@ services:
     volumes:
       - stirling-data/tessdata:/usr/share/tessdata  # OCR language files
       - stirling-data/configs:/configs               # Settings & database
-      - stirling-dat/logs:/logs                     # Application logs
+      - stirling-data/logs:/logs                     # Application logs
       - stirling-data/pipeline:/pipeline             # Automation configs
       - hetzner-media:/documents:ro
     depends_on:
@@ -266,7 +266,7 @@ services:
     image: stirlingtools/stirling-pdf-frontend:latest
     container_name: stirling-frontend
     restart: unless-stopped
-    networks: service:stirling-ts
+    network_mode: service:stirling-ts
     env_file:
       - .env
     environment:

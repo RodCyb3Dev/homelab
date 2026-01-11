@@ -42,7 +42,7 @@
       tags: ['permissions', 'fix']
 
   post_tasks:
-    - name: Ensure ts-anduin is started first (required for network_mode: service:ts-anduin)
+    - name: Ensure ts-anduin is started first (required for network_mode service ts-anduin)
       command: "docker compose -f {{ compose_file_path }} up -d ts-anduin"
       args:
         chdir: "{{ deploy_path }}"
@@ -55,7 +55,7 @@
         seconds: 15
       tags: ['deploy', 'services']
 
-    - name: Restart Jellyfin and Jellyseerr to ensure network connection (network_mode: service:ts-anduin)
+    - name: Restart Jellyfin and Jellyseerr to ensure network connection
       command: "docker compose -f {{ compose_file_path }} restart {{ item }}"
       args:
         chdir: "{{ deploy_path }}"

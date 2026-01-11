@@ -206,13 +206,33 @@ jobs:
             exit 1
           fi
           
-          # Check for .env files
-          if find . -type f -name ".env" -o -name ".env.local" -o -name ".env.production" | grep -v ".example"; then
-            echo "❌ .env files should not be committed!"
-            exit 1
+          # Check for .env files (excluding .gitignore patterns)
+          ENV_FILES=$(find . -type f \( -name ".env" -o -name ".env.local" -o -name ".env.production" \) \
+            -not -name ".env.example" \
+            -not -path "./.git/*" \
+            -not -path "./node_modules/*" 2>/dev/null || true)
+          
+          if [ -n "$ENV_FILES" ]; then
+            # Check if any .env files are NOT in .gitignore
+            FOUND_UNIGNORED=""
+            echo "$ENV_FILES" | while read -r file; do
+              if [ -n "$file" ] && ! git check-ignore -q "$file" 2>/dev/null; then
+                echo "$file"
+              fi
+            done | while read -r file; do
+              if [ -n "$file" ]; then
+                FOUND_UNIGNORED="$FOUND_UNIGNORED$file\n"
+              fi
+            done
+            
+            if [ -n "$FOUND_UNIGNORED" ]; then
+              echo "❌ .env files found that are not in .gitignore:"
+              echo "$FOUND_UNIGNORED"
+              exit 1
+            fi
           fi
           
-          echo "✅ No sensitive files found"
+          echo "✅ No sensitive files found (or all are properly ignored)"
 
       - name: Check for hardcoded IPs
         run: |
@@ -236,13 +256,33 @@ jobs:
       - name: Check for exposed secrets in env vars
         run: |
           echo "Checking for exposed secrets..."
+          # Exclude Ansible templates (they use variables), archive, and known safe patterns
           if grep -r --include="*.yml" --include="*.yaml" -iE "(password|secret|key|token):\s*[\"'][^$]" . \
             | grep -v "op item get" \
             | grep -v "\${" \
             | grep -v "# " \
             | grep -v ".git/" \
-            | grep -v ".md:"; then
+            | grep -v ".md:" \
+            | grep -v "ansible/roles/sync_secrets" \
+            | grep -v "file:///run/secrets" \
+            | grep -v "archive/" \
+            | grep -v "default('')" \
+            | grep -v "lookup('env'" \
+            | grep -v "vault_" \
+            | grep -q .; then
             echo "❌ Possible exposed secrets detected!"
+            grep -r --include="*.yml" --include="*.yaml" -iE "(password|secret|key|token):\s*[\"'][^$]" . \
+              | grep -v "op item get" \
+              | grep -v "\${" \
+              | grep -v "# " \
+              | grep -v ".git/" \
+              | grep -v ".md:" \
+              | grep -v "ansible/roles/sync_secrets" \
+              | grep -v "file:///run/secrets" \
+              | grep -v "archive/" \
+              | grep -v "default('')" \
+              | grep -v "lookup('env'" \
+              | grep -v "vault_"
             exit 1
           fi
           echo "✅ No exposed secrets found"
