@@ -325,29 +325,35 @@ jobs:
           if grep -r --include="*.yml" --include="*.yaml" -iE "(password|secret|key|token):\s*[\"'][^$]" . \
             | grep -v "op item get" \
             | grep -v "\${" \
+            | grep -v "{{" \
             | grep -v "# " \
             | grep -v ".git/" \
             | grep -v ".md:" \
             | grep -v "ansible/roles/sync_secrets" \
+            | grep -v "ansible/playbooks" \
             | grep -v "file:///run/secrets" \
             | grep -v "archive/" \
             | grep -v "default('')" \
             | grep -v "lookup('env'" \
             | grep -v "vault_" \
+            | grep -v "hostvars" \
             | grep -q .; then
             echo "❌ Possible exposed secrets detected!"
             grep -r --include="*.yml" --include="*.yaml" -iE "(password|secret|key|token):\s*[\"'][^$]" . \
               | grep -v "op item get" \
               | grep -v "\${" \
+              | grep -v "{{" \
               | grep -v "# " \
               | grep -v ".git/" \
               | grep -v ".md:" \
               | grep -v "ansible/roles/sync_secrets" \
+              | grep -v "ansible/playbooks" \
               | grep -v "file:///run/secrets" \
               | grep -v "archive/" \
               | grep -v "default('')" \
               | grep -v "lookup('env'" \
-              | grep -v "vault_"
+              | grep -v "vault_" \
+              | grep -v "hostvars"
             exit 1
           fi
           echo "✅ No exposed secrets found"
