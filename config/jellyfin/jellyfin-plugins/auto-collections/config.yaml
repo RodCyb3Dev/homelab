@@ -47,13 +47,18 @@ plugins:
   trakt:
     enabled: true
     list_ids:
+      # Your personal Trakt lists
       - zakirpokrovskii/watchlist  # Your Trakt watchlist
       - zakirpokrovskii/favorites  # Your Trakt favorites list
-      # Built-in Trakt charts (optional - uncomment to use):
-      # - "movies/boxoffice"
-      # - "shows/popular"
-      # - "movies/trending"
-      # - "shows/trending"
+      # Built-in Trakt charts - Movies
+      - "movies/trending"          # The most watched movies right now
+      - "movies/popular"           # The most popular movies of all time
+      - "movies/boxoffice"         # Top 10 movies in the US box office last weekend
+      - "movies/anticipated"       # Most anticipated movies based on lists
+      # Built-in Trakt charts - TV Shows
+      - "shows/trending"           # The most watched shows right now
+      - "shows/popular"            # The most popular shows of all time
+      - "shows/anticipated"        # Most anticipated shows based on lists
     client_id: !ENV ${TRAKT_CLIENT_ID} # Trakt API client ID. Create an app at https://trakt.tv/oauth/applications/new and copy the client ID
     client_secret: !ENV ${TRAKT_CLIENT_SECRET} # Trakt API client secret. Create an app at https://trakt.tv/oauth/applications/new and copy the client secret
   arr:
