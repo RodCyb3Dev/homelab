@@ -110,6 +110,19 @@ jobs:
       - name: Validate docker-compose.yml
         run: |
           echo "Validating docker-compose.yml syntax..."
+          # Create minimal .env file for validation (secrets are not needed for syntax validation)
+          if [ ! -f .env ]; then
+            echo "Creating minimal .env file for validation..."
+            cat > .env << 'EOF'
+          # Minimal .env for Docker Compose validation in CI
+          # Actual secrets are provided via environment variables or vault
+          TZ=UTC
+          PUID=1000
+          PGID=1000
+          DOMAIN=example.com
+          TIMEZONE=UTC
+          EOF
+          fi
           docker compose -f docker-compose.yml config > /dev/null
 
       - name: Validate GitHub Actions workflows
@@ -349,6 +362,19 @@ jobs:
       - name: Validate docker-compose syntax
         run: |
           echo "Validating docker-compose.yml..."
+          # Create minimal .env file for validation (secrets are not needed for syntax validation)
+          if [ ! -f .env ]; then
+            echo "Creating minimal .env file for validation..."
+            cat > .env << 'EOF'
+          # Minimal .env for Docker Compose validation in CI
+          # Actual secrets are provided via environment variables or vault
+          TZ=UTC
+          PUID=1000
+          PGID=1000
+          DOMAIN=example.com
+          TIMEZONE=UTC
+          EOF
+          fi
           docker compose -f docker-compose.yml config > /dev/null
           echo "✅ docker-compose.yml is valid"
 
@@ -367,6 +393,19 @@ jobs:
       - name: Validate all docker-compose files
         run: |
           echo "Validating all docker-compose files..."
+          # Create minimal .env file for validation (secrets are not needed for syntax validation)
+          if [ ! -f .env ]; then
+            echo "Creating minimal .env file for validation..."
+            cat > .env << 'EOF'
+          # Minimal .env for Docker Compose validation in CI
+          # Actual secrets are provided via environment variables or vault
+          TZ=UTC
+          PUID=1000
+          PGID=1000
+          DOMAIN=example.com
+          TIMEZONE=UTC
+          EOF
+          fi
           for compose_file in docker-compose*.yml; do
             if [ -f "$compose_file" ]; then
               echo "Validating $compose_file..."
