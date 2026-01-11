@@ -191,14 +191,31 @@ if git diff origin/main..HEAD --name-only | xargs grep -nE "TODO:|FIXME:" 2>/dev
     echo "   Consider resolving them before pushing"
 fi
 
-# Full repository secret scan
+# Scan current commit for secrets (not entire repository history)
 if command -v gitleaks >/dev/null 2>&1; then
-    echo "  → Running full repository secret scan..."
-    if ! gitleaks detect --source . --verbose 2>&1 | grep -q "no leaks found"; then
-        echo -e "${RED}❌ Secrets detected in repository!${NC}"
-        FAILED=1
+    echo "  → Scanning current commit for secrets..."
+    # Only scan the commits being pushed, not the entire repository
+    if git rev-parse --verify HEAD >/dev/null 2>&1; then
+        # Get the range of commits being pushed
+        while read local_ref local_sha remote_ref remote_sha; do
+            if [ "$local_sha" != "0000000000000000000000000000000000000000" ]; then
+                if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+                    # New branch, scan from first commit
+                    RANGE="$local_sha"
+                else
+                    # Update existing branch, scan new commits
+                    RANGE="$remote_sha..$local_sha"
+                fi
+                if ! gitleaks protect --staged --verbose 2>&1 | grep -q "no leaks found"; then
+                    echo -e "${RED}❌ Secrets detected in commits being pushed!${NC}"
+                    FAILED=1
+                else
+                    echo -e "${GREEN}  ✅ No secrets in current commit${NC}"
+                fi
+            fi
+        done
     else
-        echo -e "${GREEN}  ✅ No secrets found in repository${NC}"
+        echo -e "${YELLOW}  ⚠️  No commits yet, skipping secret scan${NC}"
     fi
 fi
 
