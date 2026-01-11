@@ -391,6 +391,7 @@ services:
       - PGID=${PGID:-1000}
       - TZ=${TZ:-UTC}
       - AUTO_UPDATE=true
+      - JACKETT_BIND_ADDRESS=0.0.0.0
     volumes:
       - ./config/jackett:/config
     depends_on:
