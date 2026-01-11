@@ -39,7 +39,7 @@
       tags: ['deploy', 'services']
 
   post_tasks:
-    - name: Ensure Tailscale services are started first (required for network_mode: service:)
+    - name: Ensure Tailscale services are started first (required for network_mode service)
       command: "docker compose -f {{ compose_file_path }} up -d {{ item }}"
       args:
         chdir: "{{ deploy_path }}"

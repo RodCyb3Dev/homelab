@@ -89,7 +89,7 @@
 
 - name: Sync docker-compose.media.yml
   synchronize:
-    src: "{{ playbook_dir }}/../docker-compose.media.yml"
+    src: "{{ inventory_dir }}/../docker-compose.media.yml"
     dest: "{{ deploy_path }}/docker-compose.media.yml"
     mode: push
     perms: yes
