@@ -42,6 +42,35 @@
       tags: ['permissions', 'fix']
 
   post_tasks:
+    - name: Ensure ts-anduin is started first (required for network_mode: service:ts-anduin)
+      command: "docker compose -f {{ compose_file_path }} up -d ts-anduin"
+      args:
+        chdir: "{{ deploy_path }}"
+      register: ts_anduin_start
+      failed_when: false
+      tags: ['deploy', 'services']
+
+    - name: Wait for ts-anduin to be ready
+      pause:
+        seconds: 15
+      tags: ['deploy', 'services']
+
+    - name: Restart Jellyfin and Jellyseerr to ensure network connection (network_mode: service:ts-anduin)
+      command: "docker compose -f {{ compose_file_path }} restart {{ item }}"
+      args:
+        chdir: "{{ deploy_path }}"
+      loop:
+        - jellyfin
+        - jellyseerr
+      register: restart_result
+      failed_when: false
+      tags: ['deploy', 'services']
+
+    - name: Wait for services to stabilize after restart
+      pause:
+        seconds: 15
+      tags: ['deploy', 'services']
+
     - name: Fix Jellyfin database permissions (critical for startup)
       file:
         path: "{{ deploy_path }}/config/jellyfin/config"
