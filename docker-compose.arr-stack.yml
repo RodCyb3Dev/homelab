@@ -37,6 +37,7 @@ services:
       - TS_USERSPACE=false
       - TS_SERVE_CONFIG=/config/ts-jellyfin.json
       - TS_CERT_DOMAIN=anduin.kooka-lake.ts.net
+      - TS_USERSPACE=true
       - TS_EXTRA_ARGS=--advertise-routes=172.25.0.0/24 --advertise-exit-node --accept-routes --accept-dns=false
       - TZ=${TZ:-UTC}
     volumes:
@@ -123,13 +124,7 @@ services:
     image: fallenbagel/jellyseerr:latest
     container_name: jellyseerr
     restart: unless-stopped
-    # NOTE: Jellyseerr is incompatible with network_mode: service:ts-anduin
-    # This is a known limitation with Tailscale's network stack
-    # Use regular network instead and connect to Jellyfin via ts-anduin:8096
-    networks:
-      - ts-anduin
-    ports:
-      - "127.0.0.1:5055:5055"  # Bind to localhost only, Tailscale serve will proxy
+    network_mode: service:ts-anduin
     env_file:
       - .env
     environment:
