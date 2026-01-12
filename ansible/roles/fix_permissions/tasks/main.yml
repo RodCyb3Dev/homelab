@@ -122,6 +122,33 @@
   changed_when: false
   tags: fix_permissions
 
+- name: Ensure Gotify config directory exists
+  file:
+    path: "{{ deploy_path }}/config/gotify"
+    state: directory
+    owner: "{{ puid | default(1000) }}"
+    group: "{{ pgid | default(1000) }}"
+    mode: '0755'
+    recurse: yes
+  tags: fix_permissions
+
+- name: Fix Gotify database file permissions
+  file:
+    path: "{{ deploy_path }}/config/gotify/gotify.db"
+    owner: "{{ puid | default(1000) }}"
+    group: "{{ pgid | default(1000) }}"
+    mode: '0664'
+  when: deploy_path is defined
+  tags: fix_permissions
+
+- name: Fix Gotify data directory permissions (all files)
+  shell: |
+    find {{ deploy_path }}/config/gotify -type f -name "*.db" -exec chmod 664 {} \; 2>/dev/null || true
+    find {{ deploy_path }}/config/gotify -type d -exec chmod 755 {} \; 2>/dev/null || true
+    chown -R {{ puid | default(1000) }}:{{ pgid | default(1000) }} {{ deploy_path }}/config/gotify 2>/dev/null || true
+  changed_when: false
+  tags: fix_permissions
+
 - name: Display permissions fix summary
   debug:
     msg:
@@ -129,3 +156,4 @@
       - "✅ jellyfin-auto-collections config verified (localhost URLs)"
       - "✅ jellyseerr config directory permissions set"
       - "✅ LazyLibrarian cache directory permissions set (777 for Mako templates)"
+      - "✅ Gotify database permissions fixed (owner: {{ puid | default(1000) }}:{{ pgid | default(1000) }}, mode: 664)"
