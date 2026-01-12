@@ -2,87 +2,44 @@
 
 Comprehensive analytics and statistics for the Homelab Infrastructure project.
 
-*Last Updated: Auto-generated*  
-*Commit: Auto-generated*  
-*Branch: Auto-generated*
+*Last Updated: 2026-01-12 11:52:41 UTC*  
+*Commit: [35e6110](https://github.com/RodCyb3Dev/homelab/commit/35e6110)*  
+*Branch: main*
 
 ## 📊 File Statistics
 
 | **Type** | **Files** | **Lines** |
 |----------|-----------|-----------|
-| **Total Files** | Auto-generated | - |
-| **Python** | Auto-generated | Auto-generated |
-| **YAML** | Auto-generated | Auto-generated |
-| **Shell Scripts** | Auto-generated | Auto-generated |
-| **Markdown** | Auto-generated | Auto-generated |
-| **Total Code Lines** | - | Auto-generated+ |
+| **Total Files** | 156 | - |
+| **Python** | 39 | 4552 |
+| **YAML** | 45 | 7419 |
+| **Shell Scripts** | 4 | 357 |
+| **Markdown** | 20 | 6166 |
+| **Total Code Lines** | - | 18494+ |
 
 ## 🐳 Docker Infrastructure
 
 | **Metric** | **Count** |
 |------------|-----------|
-| **Docker Services** | Auto-generated |
-| **Docker Compose Files** | Auto-generated |
+| **Docker Services** | 0 |
+| **Docker Compose Files** | 7 |
 
 ## 🔧 Infrastructure Components
 
 | **Component** | **Count** |
 |---------------|-----------|
-| **Ansible Playbooks** | Auto-generated |
-| **Config Directories** | Auto-generated |
+| **Ansible Playbooks** | 19 |
+| **Config Directories** | 32 |
 
 ## 📈 Growth Trends
 
-Statistics are automatically updated daily via GitHub Actions workflow `.github/workflows/update-readme-stats.yml`.
+Statistics are automatically updated daily via GitHub Actions.
 
 ## 🔍 Analysis Tools
 
 - **Code Analysis**: GitHub Actions workflows
 - **Security Scanning**: Trivy, Docker Scout
 - **Quality Checks**: Prettier, ShellCheck, YAML Lint
-- **Secret Scanning**: TruffleHog, Gitleaks
-
-## 📦 Service Breakdown
-
-### Media Stack
-- Jellyfin (Media Server)
-- Jellyseerr (Request Manager)
-- Radarr (Movie Manager)
-- Sonarr (TV Manager)
-- Prowlarr (Indexer Manager)
-- Lidarr (Music Manager)
-- LazyLibrarian (Book Manager)
-- Jackett (Torrent Indexer)
-- qBittorrent (Download Client)
-- Flaresolverr (Proxy)
-
-### Audio Services
-- Audiobookshelf (Audiobook Server)
-- Navidrome (Music Server)
-
-### Photo Management
-- Immich (Photo Management)
-
-### PDF Services
-- Stirling-PDF (PDF Processing)
-
-### Security Stack
-- Authelia (Authentication)
-- CrowdSec (Intrusion Detection)
-- Fail2ban (Intrusion Prevention)
-
-### Monitoring Stack
-- Prometheus (Metrics)
-- Grafana (Visualization)
-- Loki (Logs)
-- Promtail (Log Collector)
-- Uptime Kuma (Uptime Monitoring)
-
-### Infrastructure
-- Caddy (Reverse Proxy)
-- Tailscale (VPN)
-- Portainer (Container Management)
-- Gotify (Notifications)
 
 ---
 

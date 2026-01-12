@@ -41,29 +41,30 @@ A production-ready, maximum-security homelab infrastructure with defense-in-dept
 - ✅ **Python CLI Tools** - Modular homelab management tools for storage, backups, health checks, and performance monitoring
 
 <!-- AUTO-GENERATED STATS - DO NOT EDIT MANUALLY -->
+<!-- AUTO-GENERATED STATS - DO NOT EDIT MANUALLY -->
 <!-- STATS_START -->
 
-**Last Updated**: 2024-01-01 00:00:00 UTC | **Commit**: [0000000](https://github.com/your-username/homelab/commit/0000000) | **Branch**: main
+**Last Updated**: 2026-01-12 11:52:41 UTC | **Commit**: [35e6110](https://github.com/RodCyb3Dev/homelab/commit/35e6110) | **Branch**: main
 
 ## 📊 Quick Statistics
 
 | **Metric**        | **Count** | **Details**                                              |
 | ----------------- | --------- | ------------------------------------------------------------- |
-| **Total Files**   | 0       | [📈 Full Analysis](../../wiki/Project-Statistics)             |
-| **Code Lines**    | 0+   | [🏗️ Architecture Overview](../../wiki/Architecture-Overview) |
-| **Python**        | 0 files | 0 lines                                                  |
-| **YAML**          | 0 files  | 0 lines                                                   |
-| **Shell Scripts** | 0 files | 0 lines                                                  |
-| **Documentation** | 0 files  | [📚 Documentation Index](../../wiki/Documentation-Index)      |
-| **Docker Services** | 0 services | 0 compose files |
+| **Total Files**   | 156       | [📈 Full Analysis](../../wiki/Project-Statistics)             |
+| **Code Lines**    | 18494+   | [🏗️ Architecture Overview](../../wiki/Architecture-Overview) |
+| **Python**        | 39 files | 4552 lines                                                  |
+| **YAML**          | 45 files  | 7419 lines                                                   |
+| **Shell Scripts** | 4 files | 357 lines                                                  |
+| **Documentation** | 20 files  | [📚 Documentation Index](../../wiki/Documentation-Index)      |
+| **Docker Services** | 0 services | 7 compose files |
 
 ### 🚀 Key Components
 
 | **Component**        | **Files** | **Purpose**         |
 | -------------------- | --------- | ------------------- |
-| **Python Tools**     | 0       | CLI & automation     |
-| **Ansible Playbooks** | 0       | Infrastructure as code   |
-| **Config Directories**   | 0        | Service configurations |
+| **Python Tools**     | 39       | CLI & automation     |
+| **Ansible Playbooks** | 19       | Infrastructure as code   |
+| **Config Directories**   | 32        | Service configurations |
 
 ---
 
