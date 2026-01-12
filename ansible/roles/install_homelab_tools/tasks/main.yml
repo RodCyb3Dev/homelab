@@ -1,0 +1,104 @@
+##############################################################################
+# ANSIBLE ROLE - Install Homelab Tools
+# Installs the Python homelab-tools package in /opt/tools (separate from /opt/homelab)
+# 
+# Why /opt/tools instead of /opt/homelab?
+# - Keeps /opt/homelab clean for backups (only config, compose files, .env)
+# - Python tools code is already version controlled in git
+# - Tools can be reinstalled easily if needed
+# - Avoids backing up .venv, build artifacts, and Python cache
+##############################################################################
+
+- name: Install Python and pip
+  apt:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+    state: present
+    update_cache: yes
+  tags: install_homelab_tools
+
+- name: Install system dependencies for homelab-tools
+  apt:
+    name:
+      - borgbackup
+      - cifs-utils
+      - davfs2
+      - sshfs
+    state: present
+    update_cache: yes
+  tags: install_homelab_tools
+
+- name: Ensure /opt/tools directory exists
+  file:
+    path: /opt/tools
+    state: directory
+    owner: "{{ deploy_user | default('deploy') }}"
+    group: "{{ deploy_user | default('deploy') }}"
+    mode: '0755'
+  tags: install_homelab_tools
+
+- name: Ensure homelab-tools package directory exists
+  file:
+    path: /opt/tools/homelab_tools
+    state: directory
+    owner: "{{ deploy_user | default('deploy') }}"
+    group: "{{ deploy_user | default('deploy') }}"
+    mode: '0755'
+  tags: install_homelab_tools
+
+- name: Copy homelab_tools package to server
+  synchronize:
+    src: "{{ inventory_dir }}/../homelab_tools/"
+    dest: /opt/tools/homelab_tools/
+    mode: push
+    perms: yes
+    rsync_opts:
+      - "--exclude=__pycache__"
+      - "--exclude=*.pyc"
+      - "--exclude=.git"
+  tags: install_homelab_tools
+
+- name: Copy requirements.txt to server
+  copy:
+    src: "{{ inventory_dir }}/../requirements.txt"
+    dest: /opt/tools/requirements.txt
+    mode: '0644'
+  tags: install_homelab_tools
+
+- name: Copy setup.py to server
+  copy:
+    src: "{{ inventory_dir }}/../setup.py"
+    dest: /opt/tools/setup.py
+    mode: '0644'
+  tags: install_homelab_tools
+
+- name: Install Python dependencies from requirements.txt
+  pip:
+    requirements: /opt/tools/requirements.txt
+    executable: pip3
+    state: present
+  environment:
+    PATH: "/usr/local/bin:/usr/bin:/bin"
+  tags: install_homelab_tools
+
+- name: Install homelab-tools Python package in editable mode
+  command: pip3 install -e /opt/tools
+  args:
+    creates: /opt/tools/homelab_tools.egg-info
+  environment:
+    PATH: "/usr/local/bin:/usr/bin:/bin"
+  tags: install_homelab_tools
+
+- name: Verify homelab-tools installation
+  command: python3 -m homelab_tools --help
+  register: homelab_tools_check
+  changed_when: false
+  failed_when: false
+  tags: install_homelab_tools
+
+- name: Display installation status
+  debug:
+    msg: "homelab-tools installed successfully" if homelab_tools_check.rc == 0 else "homelab-tools installation may have issues"
+  tags: install_homelab_tools

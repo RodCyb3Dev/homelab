@@ -1,0 +1,77 @@
+##############################################################################
+# PERFORMANCE MONITORING STACK
+# Automated performance monitoring and reporting
+##############################################################################
+
+networks:
+  grafana-monitoring:
+    external: true
+
+volumes:
+  performance-data:
+
+services:
+  ##############################################################################
+  # PERFORMANCE MONITOR - Continuous monitoring
+  ##############################################################################
+
+  performance-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.performance
+    container_name: performance-monitor
+    restart: unless-stopped
+    networks:
+      - grafana-monitoring
+    volumes:
+      - performance-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/performance:/config
+    environment:
+      - LOKI_URL=http://loki:3100
+      - PROMETHEUS_URL=http://prometheus:9090
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - DEPLOY_PATH=/opt/homelab
+    command: performance monitor --continuous
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import requests; requests.get('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  ##############################################################################
+  # PERFORMANCE CRON - Daily reports
+  ##############################################################################
+
+  performance-cron:
+    build:
+      context: .
+      dockerfile: Dockerfile.performance
+    container_name: performance-cron
+    restart: unless-stopped
+    networks:
+      - grafana-monitoring
+    volumes:
+      - performance-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/performance:/config
+    environment:
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - DEPLOY_PATH=/opt/homelab
+    command: >
+      sh -c "
+        echo '0 2 * * * cd /opt/homelab && python3 -m homelab_tools performance report --format slack' | crontab - &&
+        crond -f
+      "
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"

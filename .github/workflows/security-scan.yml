@@ -22,10 +22,10 @@ env:
 
 jobs:
   ##############################################################################
-  # DOCKER IMAGE SCANNING
+  # DOCKER IMAGE SCANNING - Trivy (Config & Infrastructure)
   ##############################################################################
-  image-scan:
-    name: Scan Docker Images
+  image-scan-trivy:
+    name: Scan Docker Images (Trivy)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -37,35 +37,149 @@ jobs:
           SERVICES=$(docker-compose config --services)
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
 
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy vulnerability scanner (Config)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'config'
           scan-ref: 'docker-compose.yml'
           format: 'sarif'
-          output: 'trivy-results.sarif'
+          output: 'trivy-config-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
 
-      - name: Upload Trivy results
+      - name: Upload Trivy config results
         uses: github/codeql-action/upload-sarif@v2
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: 'trivy-config-results.sarif'
 
-      - name: Generate vulnerability report
+      - name: Generate Trivy vulnerability report
         run: |
-          docker run --rm -v $(pwd):/repo aquasec/trivy config /repo/docker-compose.yml > vulnerability-report.txt
-          cat vulnerability-report.txt
+          docker run --rm -v $(pwd):/repo aquasec/trivy config /repo/docker-compose.yml > trivy-vulnerability-report.txt
+          cat trivy-vulnerability-report.txt
 
-      - name: Check for critical vulnerabilities
+      - name: Check for critical vulnerabilities (Trivy)
         run: |
-          if grep -q "CRITICAL" vulnerability-report.txt; then
-            echo "❌ Critical vulnerabilities found!"
+          if grep -q "CRITICAL" trivy-vulnerability-report.txt; then
+            echo "❌ Critical vulnerabilities found in Trivy scan!"
             curl -X POST "${{ env.GOTIFY_URL }}/message?token=${{ env.GOTIFY_TOKEN }}" \
-              -F "title=🚨 Critical Vulnerabilities Found" \
-              -F "message=Security scan detected critical vulnerabilities. Review immediately!" \
+              -F "title=🚨 Critical Vulnerabilities Found (Trivy)" \
+              -F "message=Trivy scan detected critical vulnerabilities. Review immediately!" \
               -F "priority=10"
             exit 1
+          fi
+
+  ##############################################################################
+  # DOCKER IMAGE SCANNING - Docker Scout (Image Analysis & SBOM)
+  ##############################################################################
+  image-scan-scout:
+    name: Scan Docker Images (Docker Scout)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install Docker Scout
+        uses: docker/scout-action@v1
+        with:
+          command: install
+
+      - name: Extract images from docker-compose files
+        id: extract-images
+        run: |
+          echo "🔍 Extracting Docker images from compose files..."
+          
+          # Find all docker-compose files
+          COMPOSE_FILES=$(find . -name "docker-compose*.yml" -not -path "./.git/*" | tr '\n' ' ')
+          
+          # Extract unique images
+          IMAGES=$(grep -h "image:" $COMPOSE_FILES | grep -v "#" | awk '{print $2}' | sort -u | grep -v "^$" | tr '\n' ' ')
+          
+          echo "Found images: $IMAGES"
+          echo "images<<EOF" >> $GITHUB_OUTPUT
+          echo "$IMAGES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Scan images with Docker Scout
+        id: scout-scan
+        run: |
+          echo "🔍 Scanning Docker images with Docker Scout..."
+          
+          IMAGES="${{ steps.extract-images.outputs.images }}"
+          CRITICAL_FOUND=false
+          HIGH_FOUND=false
+          
+          for IMAGE in $IMAGES; do
+            echo "Scanning: $IMAGE"
+            
+            # Run Docker Scout CVE scan
+            docker scout cves "$IMAGE" --only-severity critical,high --format table > "scout-${IMAGE//\//-}.txt" || true
+            
+            # Check for critical vulnerabilities
+            if grep -qi "critical" "scout-${IMAGE//\//-}.txt" 2>/dev/null; then
+              CRITICAL_FOUND=true
+              echo "❌ Critical vulnerabilities found in $IMAGE"
+            fi
+            
+            # Check for high vulnerabilities
+            if grep -qi "high" "scout-${IMAGE//\//-}.txt" 2>/dev/null; then
+              HIGH_FOUND=true
+              echo "⚠️ High vulnerabilities found in $IMAGE"
+            fi
+            
+            # Generate SBOM
+            docker scout sbom "$IMAGE" --format spdx-json --output "scout-sbom-${IMAGE//\//-}.json" || true
+          done
+          
+          echo "critical_found=$CRITICAL_FOUND" >> $GITHUB_OUTPUT
+          echo "high_found=$HIGH_FOUND" >> $GITHUB_OUTPUT
+
+      - name: Upload Docker Scout reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: docker-scout-reports
+          path: |
+            scout-*.txt
+            scout-sbom-*.json
+          retention-days: 30
+
+      - name: Generate Docker Scout summary
+        run: |
+          echo "📊 Docker Scout Scan Summary" > scout-summary.txt
+          echo "============================" >> scout-summary.txt
+          echo "Date: $(date)" >> scout-summary.txt
+          echo "" >> scout-summary.txt
+          
+          for REPORT in scout-*.txt; do
+            if [ -f "$REPORT" ]; then
+              echo "--- $REPORT ---" >> scout-summary.txt
+              head -20 "$REPORT" >> scout-summary.txt
+              echo "" >> scout-summary.txt
+            fi
+          done
+          
+          cat scout-summary.txt
+
+      - name: Check for critical vulnerabilities (Docker Scout)
+        run: |
+          if [ "${{ steps.scout-scan.outputs.critical_found }}" = "true" ]; then
+            echo "❌ Critical vulnerabilities found in Docker Scout scan!"
+            curl -X POST "${{ env.GOTIFY_URL }}/message?token=${{ env.GOTIFY_TOKEN }}" \
+              -F "title=🚨 Critical Vulnerabilities Found (Docker Scout)" \
+              -F "message=Docker Scout scan detected critical vulnerabilities in images. Review immediately!" \
+              -F "priority=10"
+            exit 1
+          elif [ "${{ steps.scout-scan.outputs.high_found }}" = "true" ]; then
+            echo "⚠️ High vulnerabilities found (non-blocking)"
+            curl -X POST "${{ env.GOTIFY_URL }}/message?token=${{ env.GOTIFY_TOKEN }}" \
+              -F "title=⚠️ High Vulnerabilities Found (Docker Scout)" \
+              -F "message=Docker Scout scan detected high severity vulnerabilities. Review when possible." \
+              -F "priority=7"
+          else
+            echo "✅ No critical or high vulnerabilities found"
           fi
 
   ##############################################################################
@@ -240,7 +354,7 @@ jobs:
   security-report:
     name: Generate Security Report
     runs-on: ubuntu-latest
-    needs: [image-scan, docker-bench, config-audit, dependency-audit, network-scan, compliance-check]
+    needs: [image-scan-trivy, image-scan-scout, docker-bench, config-audit, dependency-audit, network-scan, compliance-check]
     if: always()
     steps:
       - name: Generate summary
@@ -250,7 +364,8 @@ jobs:
           echo "Date: $(date)"
           echo ""
           echo "Scans completed:"
-          echo "✅ Docker image vulnerability scan"
+          echo "✅ Docker image vulnerability scan (Trivy - Config)"
+          echo "✅ Docker image vulnerability scan (Docker Scout - Images & SBOM)"
           echo "✅ Docker security benchmark"
           echo "✅ Configuration audit"
           echo "✅ Dependency audit"

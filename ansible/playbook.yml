@@ -40,6 +40,9 @@
       tags: always
 
   roles:
+    - role: install_homelab_tools
+      tags: ['install', 'tools']
+
     - role: sync_config
       tags: ['config', 'sync']
 

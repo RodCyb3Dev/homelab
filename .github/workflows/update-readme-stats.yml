@@ -1,0 +1,313 @@
+##############################################################################
+# GITHUB ACTIONS - Update README Statistics
+# Automatically generates and updates project statistics in README.md
+##############################################################################
+
+name: Update README Statistics
+
+on:
+  schedule:
+    # Daily at 00:00 UTC
+    - cron: '0 0 * * *'
+
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+    paths:
+      - '**.py'
+      - '**.yml'
+      - '**.yaml'
+      - '**.sh'
+      - '**.md'
+      - 'docker-compose*.yml'
+      - 'README.md'
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  ##############################################################################
+  # GENERATE STATISTICS
+  ##############################################################################
+  generate-stats:
+    name: Generate Project Statistics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate statistics
+        id: stats
+        run: |
+          echo "📊 Generating project statistics..."
+
+          # Get commit info
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          COMMIT_URL="https://github.com/${{ github.repository }}/commit/$COMMIT_SHA"
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          # Count files by type
+          TOTAL_FILES=$(find . -type f -not -path "./.git/*" -not -path "./.github/*" -not -path "./node_modules/*" -not -path "./.venv/*" -not -path "./venv/*" -not -path "./__pycache__/*" -not -path "./*.egg-info/*" | wc -l | tr -d ' ')
+
+          # Python files
+          PYTHON_FILES=$(find . -name "*.py" -not -path "./.git/*" -not -path "./.venv/*" -not -path "./venv/*" -not -path "./__pycache__/*" | wc -l | tr -d ' ')
+          PYTHON_LINES=$(find . -name "*.py" -not -path "./.git/*" -not -path "./.venv/*" -not -path "./venv/*" -not -path "./__pycache__/*" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+
+          # YAML files
+          YAML_FILES=$(find . -name "*.yml" -o -name "*.yaml" -not -path "./.git/*" -not -path "./.venv/*" -not -path "./venv/*" | wc -l | tr -d ' ')
+          YAML_LINES=$(find . \( -name "*.yml" -o -name "*.yaml" \) -not -path "./.git/*" -not -path "./.venv/*" -not -path "./venv/*" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+
+          # Shell scripts
+          SHELL_FILES=$(find . -name "*.sh" -not -path "./.git/*" | wc -l | tr -d ' ')
+          SHELL_LINES=$(find . -name "*.sh" -not -path "./.git/*" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+
+          # Markdown files
+          MD_FILES=$(find . -name "*.md" -not -path "./.git/*" -not -path "./.wiki/*" | wc -l | tr -d ' ')
+          MD_LINES=$(find . -name "*.md" -not -path "./.git/*" -not -path "./.wiki/*" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+
+          # Docker Compose files
+          COMPOSE_FILES=$(find . -name "docker-compose*.yml" -not -path "./.git/*" | wc -l | tr -d ' ')
+
+          # Ansible files
+          ANSIBLE_FILES=$(find ./ansible -type f \( -name "*.yml" -o -name "*.yaml" \) -not -path "./.git/*" 2>/dev/null | wc -l | tr -d ' ')
+
+          # Config files
+          CONFIG_DIRS=$(find ./config -type d -not -path "./.git/*" 2>/dev/null | wc -l | tr -d ' ')
+
+          # Total code lines (approximate)
+          TOTAL_LINES=$(find . -type f \( -name "*.py" -o -name "*.yml" -o -name "*.yaml" -o -name "*.sh" -o -name "*.md" \) -not -path "./.git/*" -not -path "./.venv/*" -not -path "./venv/*" -not -path "./__pycache__/*" -not -path "./.wiki/*" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+
+          # Services count (from docker-compose files)
+          SERVICES=$(docker-compose config --services 2>/dev/null | wc -l | tr -d ' ' || echo "0")
+
+          # Output to GitHub Actions
+          echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "commit_url=$COMMIT_URL" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "total_files=$TOTAL_FILES" >> $GITHUB_OUTPUT
+          echo "python_files=$PYTHON_FILES" >> $GITHUB_OUTPUT
+          echo "python_lines=$PYTHON_LINES" >> $GITHUB_OUTPUT
+          echo "yaml_files=$YAML_FILES" >> $GITHUB_OUTPUT
+          echo "yaml_lines=$YAML_LINES" >> $GITHUB_OUTPUT
+          echo "shell_files=$SHELL_FILES" >> $GITHUB_OUTPUT
+          echo "shell_lines=$SHELL_LINES" >> $GITHUB_OUTPUT
+          echo "md_files=$MD_FILES" >> $GITHUB_OUTPUT
+          echo "md_lines=$MD_LINES" >> $GITHUB_OUTPUT
+          echo "compose_files=$COMPOSE_FILES" >> $GITHUB_OUTPUT
+          echo "ansible_files=$ANSIBLE_FILES" >> $GITHUB_OUTPUT
+          echo "config_dirs=$CONFIG_DIRS" >> $GITHUB_OUTPUT
+          echo "total_lines=$TOTAL_LINES" >> $GITHUB_OUTPUT
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+
+          echo "✅ Statistics generated:"
+          echo "  Total Files: $TOTAL_FILES"
+          echo "  Python: $PYTHON_FILES files, $PYTHON_LINES lines"
+          echo "  YAML: $YAML_FILES files, $YAML_LINES lines"
+          echo "  Shell: $SHELL_FILES files, $SHELL_LINES lines"
+          echo "  Markdown: $MD_FILES files, $MD_LINES lines"
+          echo "  Docker Services: $SERVICES"
+
+      - name: Update README.md with statistics
+        run: |
+          echo "📝 Updating README.md with statistics..."
+
+          # Check if README.md exists
+          if [ ! -f README.md ]; then
+            echo "❌ README.md not found!"
+            exit 1
+          fi
+
+          # Use Python to replace the stats section
+          python3 << EOF
+          import re
+
+          # Read README
+          with open('README.md', 'r') as f:
+              content = f.read()
+
+          # Build stats section with actual values
+          stats_section = f"""<!-- AUTO-GENERATED STATS - DO NOT EDIT MANUALLY -->
+<!-- STATS_START -->
+
+**Last Updated**: ${{ steps.stats.outputs.timestamp }} | **Commit**: [${{ steps.stats.outputs.commit_sha }}](${{ steps.stats.outputs.commit_url }}) | **Branch**: ${{ steps.stats.outputs.branch }}
+
+## 📊 Quick Statistics
+
+| **Metric**        | **Count** | **Details**                                              |
+| ----------------- | --------- | ------------------------------------------------------------- |
+| **Total Files**   | ${{ steps.stats.outputs.total_files }}       | [📈 Full Analysis](../../wiki/Project-Statistics)             |
+| **Code Lines**    | ${{ steps.stats.outputs.total_lines }}+   | [🏗️ Architecture Overview](../../wiki/Architecture-Overview) |
+| **Python**        | ${{ steps.stats.outputs.python_files }} files | ${{ steps.stats.outputs.python_lines }} lines                                                  |
+| **YAML**          | ${{ steps.stats.outputs.yaml_files }} files  | ${{ steps.stats.outputs.yaml_lines }} lines                                                   |
+| **Shell Scripts** | ${{ steps.stats.outputs.shell_files }} files | ${{ steps.stats.outputs.shell_lines }} lines                                                  |
+| **Documentation** | ${{ steps.stats.outputs.md_files }} files  | [📚 Documentation Index](../../wiki/Documentation-Index)      |
+| **Docker Services** | ${{ steps.stats.outputs.services }} services | ${{ steps.stats.outputs.compose_files }} compose files |
+
+### 🚀 Key Components
+
+| **Component**        | **Files** | **Purpose**         |
+| -------------------- | --------- | ------------------- |
+| **Python Tools**     | ${{ steps.stats.outputs.python_files }}       | CLI & automation     |
+| **Ansible Playbooks** | ${{ steps.stats.outputs.ansible_files }}       | Infrastructure as code   |
+| **Config Directories**   | ${{ steps.stats.outputs.config_dirs }}        | Service configurations |
+
+---
+
+📚 **[View Complete Analytics in Wiki →](../../wiki/Home)**  
+🔍 **[Detailed Statistics →](../../wiki/Project-Statistics)**  
+🏗️ **[Architecture Overview →](../../wiki/Architecture-Overview)**
+
+<!-- STATS_END -->"""
+
+# Replace stats section if it exists
+pattern = r'<!-- STATS_START -->.*?<!-- STATS_END -->'
+
+if re.search(pattern, content, re.DOTALL):
+    # Replace existing section
+    new_content = re.sub(pattern, stats_section.strip(), content, flags=re.DOTALL)
+    print("✅ Updated existing stats section in README.md")
+else:
+    # Find insertion point (after Features section, before Table of Contents)
+    toc_pattern = r'(## 📋 Table of Contents)'
+    if re.search(toc_pattern, content):
+        new_content = re.sub(
+            toc_pattern,
+            stats_section.strip() + '\n\n' + r'\1',
+            content
+        )
+        print("✅ Added new stats section before Table of Contents")
+    else:
+        # Append at the end
+        new_content = content + '\n\n' + stats_section.strip()
+        print("✅ Added new stats section at the end")
+
+# Write updated README
+with open('README.md', 'w') as f:
+    f.write(new_content)
+EOF
+
+- name: Generate Wiki Pages
+run: |
+echo "📚 Generating wiki pages..."
+
+mkdir -p .wiki
+
+# Generate Home.md (use EOF without quotes to allow GitHub Actions variable expansion)
+cat > .wiki/Home.md << EOF
+# Homelab Infrastructure Wiki
+
+Welcome to the Homelab Infrastructure documentation wiki!
+
+## 📋 Quick Links
+
+- [Project Statistics](./Project-Statistics) - Comprehensive project analytics
+- [Architecture Overview](./Architecture-Overview) - System architecture and design
+- [Documentation Index](./Documentation-Index) - All documentation files
+
+## 🏗️ Infrastructure Overview
+
+This homelab infrastructure includes:
+
+- **Media Services**: Jellyfin, Jellyseerr, Arr stack (Radarr, Sonarr, Prowlarr, Lidarr, LazyLibrarian)
+- **Audio Services**: Audiobookshelf, Navidrome
+- **Photo Management**: Immich
+- **Security**: Authelia, CrowdSec, Fail2ban
+- **Monitoring**: Prometheus, Grafana, Loki, Uptime Kuma
+- **Automation**: Ansible playbooks, Python CLI tools
+
+## 📊 Current Statistics
+
+See the [Project Statistics](./Project-Statistics) page for detailed analytics.
+
+## 🔧 Tools & Technologies
+
+- **Containerization**: Docker & Docker Compose
+- **Orchestration**: Ansible
+- **Reverse Proxy**: Caddy
+- **VPN**: Tailscale
+- **Backup**: BorgBackup
+- **Monitoring**: Prometheus, Grafana, Loki
+
+---
+
+*Last updated: ${{ steps.stats.outputs.timestamp }}*
+EOF
+
+# Generate Project-Statistics.md
+cat > .wiki/Project-Statistics.md << EOF
+# Project Statistics
+
+Comprehensive analytics and statistics for the Homelab Infrastructure project.
+
+*Last Updated: ${{ steps.stats.outputs.timestamp }}*  
+*Commit: [${{ steps.stats.outputs.commit_sha }}](${{ steps.stats.outputs.commit_url }})*  
+*Branch: ${{ steps.stats.outputs.branch }}*
+
+## 📊 File Statistics
+
+| **Type** | **Files** | **Lines** |
+|----------|-----------|-----------|
+| **Total Files** | ${{ steps.stats.outputs.total_files }} | - |
+| **Python** | ${{ steps.stats.outputs.python_files }} | ${{ steps.stats.outputs.python_lines }} |
+| **YAML** | ${{ steps.stats.outputs.yaml_files }} | ${{ steps.stats.outputs.yaml_lines }} |
+| **Shell Scripts** | ${{ steps.stats.outputs.shell_files }} | ${{ steps.stats.outputs.shell_lines }} |
+| **Markdown** | ${{ steps.stats.outputs.md_files }} | ${{ steps.stats.outputs.md_lines }} |
+| **Total Code Lines** | - | ${{ steps.stats.outputs.total_lines }}+ |
+
+## 🐳 Docker Infrastructure
+
+| **Metric** | **Count** |
+|------------|-----------|
+| **Docker Services** | ${{ steps.stats.outputs.services }} |
+| **Docker Compose Files** | ${{ steps.stats.outputs.compose_files }} |
+
+## 🔧 Infrastructure Components
+
+| **Component** | **Count** |
+|---------------|-----------|
+| **Ansible Playbooks** | ${{ steps.stats.outputs.ansible_files }} |
+| **Config Directories** | ${{ steps.stats.outputs.config_dirs }} |
+
+## 📈 Growth Trends
+
+Statistics are automatically updated daily via GitHub Actions.
+
+## 🔍 Analysis Tools
+
+- **Code Analysis**: GitHub Actions workflows
+- **Security Scanning**: Trivy, Docker Scout
+- **Quality Checks**: Prettier, ShellCheck, YAML Lint
+
+---
+
+[← Back to Home](./Home)
+EOF
+
+echo "✅ Wiki pages generated in .wiki/ directory"
+
+- name: Commit and push changes
+run: |
+git config --local user.email "github-actions[bot]@users.noreply.github.com"
+git config --local user.name "github-actions[bot]"
+
+git add README.md .wiki/
+
+if git diff --staged --quiet; then
+  echo "No changes to commit"
+else
+  git commit -m "📊 Auto-update project statistics [skip ci]"
+  git push
+  echo "✅ Statistics updated and pushed"
+fi

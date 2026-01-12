@@ -1,0 +1,25 @@
+# Homelab Tools Python Dependencies
+
+# CLI Framework
+click>=8.0.0
+
+# Configuration
+pyyaml>=6.0
+
+# HTTP Client
+requests>=2.28.0
+
+# SSH Client
+paramiko>=3.0.0
+
+# Docker SDK
+docker>=6.0.0
+
+# System Monitoring
+psutil>=5.9.0
+
+# Prometheus Client (for metrics)
+prometheus-client>=0.16.0
+
+# Borg Backup (Python bindings - optional, can use CLI)
+# borgbackup>=1.2.0

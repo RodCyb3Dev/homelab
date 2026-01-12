@@ -38,6 +38,40 @@ A production-ready, maximum-security homelab infrastructure with defense-in-dept
 - ✅ **Automated Backups** - Daily backups to Storage Box
 - ✅ **Zero-Downtime Updates** - Rolling deployments
 - ✅ **Automated Security Scans** - Weekly vulnerability checks
+- ✅ **Python CLI Tools** - Modular homelab management tools for storage, backups, health checks, and performance monitoring
+
+<!-- AUTO-GENERATED STATS - DO NOT EDIT MANUALLY -->
+<!-- STATS_START -->
+
+**Last Updated**: 2024-01-01 00:00:00 UTC | **Commit**: [0000000](https://github.com/your-username/homelab/commit/0000000) | **Branch**: main
+
+## 📊 Quick Statistics
+
+| **Metric**        | **Count** | **Details**                                              |
+| ----------------- | --------- | ------------------------------------------------------------- |
+| **Total Files**   | 0       | [📈 Full Analysis](../../wiki/Project-Statistics)             |
+| **Code Lines**    | 0+   | [🏗️ Architecture Overview](../../wiki/Architecture-Overview) |
+| **Python**        | 0 files | 0 lines                                                  |
+| **YAML**          | 0 files  | 0 lines                                                   |
+| **Shell Scripts** | 0 files | 0 lines                                                  |
+| **Documentation** | 0 files  | [📚 Documentation Index](../../wiki/Documentation-Index)      |
+| **Docker Services** | 0 services | 0 compose files |
+
+### 🚀 Key Components
+
+| **Component**        | **Files** | **Purpose**         |
+| -------------------- | --------- | ------------------- |
+| **Python Tools**     | 0       | CLI & automation     |
+| **Ansible Playbooks** | 0       | Infrastructure as code   |
+| **Config Directories**   | 0        | Service configurations |
+
+---
+
+📚 **[View Complete Analytics in Wiki →](../../wiki/Home)**  
+🔍 **[Detailed Statistics →](../../wiki/Project-Statistics)**  
+🏗️ **[Architecture Overview →](../../wiki/Architecture-Overview)**
+
+<!-- STATS_END -->
 
 ## 📋 Table of Contents
 
@@ -318,7 +352,7 @@ ls -lah /mnt/storagebox/
 sudo systemctl status storagebox-mount.service
 ```
 
-See [Storage Box Setup Guide](docs/STORAGE_BOX_SETUP.md) for detailed configuration.
+See [Storage Box Setup Guide](docs/STORAGE_BOX.md) for detailed configuration.
 
 ## 🚢 Deployment
 
@@ -781,6 +815,51 @@ docker logs promtail --tail 50 | grep traefik
 curl http://localhost:3100/ready
 ```
 
+## 🐍 Python CLI Tools
+
+The homelab includes a modular Python-based CLI tool (`homelab_tools`) for managing various aspects of the infrastructure.
+
+### Features
+
+- ✅ **Storage Management** - Mount/unmount Storage Boxes, setup SSH keys, verify connectivity
+- ✅ **Backup & Restore** - Borg-based backups to remote locations with deduplication
+- ✅ **Health Checks** - Comprehensive service health monitoring (local and remote via SSH)
+- ✅ **Performance Monitoring** - System and Docker metrics collection with Slack reporting
+- ✅ **Git Hooks** - Automated security and quality checks via pre-commit/pre-push hooks
+
+### Quick Start
+
+```bash
+# Install homelab_tools (automatically installed via Ansible)
+python3 -m homelab_tools --help
+
+# Check service health
+python3 -m homelab_tools health-check --local
+
+# Mount Storage Boxes
+python3 -m homelab_tools storage mount --box all
+
+# Create backup
+python3 -m homelab_tools backup create --type full --repository primary
+
+# Performance monitoring
+python3 -m homelab_tools performance report --format slack
+```
+
+### Integration
+
+The Python tools are automatically:
+- ✅ Installed on the server via Ansible during deployment to `/opt/tools/` (separate from `/opt/homelab/`)
+- ✅ Integrated with the Makefile for easy access
+- ✅ Available in the performance monitoring Docker stack
+- ✅ Configured to send logs to Loki for centralized logging
+
+**Installation Location:**
+- Tools are installed in `/opt/tools/` to keep `/opt/homelab/` clean for backups
+- Only configuration files in `/opt/homelab/` are backed up (not Python tools code)
+
+**See [Homelab Tools Documentation](docs/HOMELAB_TOOLS.md) for complete usage guide and all available commands.**
+
 ## 🐛 Troubleshooting
 
 ### Service Won't Start
@@ -884,15 +963,29 @@ Jellyfin has been optimized for performance on virtualized servers without hardw
 - **Limit Concurrent Transcodes**: Set to 2-3 for CPX21 servers (3 vCPU)
 - **Monitor Performance**: Check Dashboard → Dashboard → Active Devices for transcoding status
 
-**See [Jellyfin Performance Guide](docs/JELLYFIN_PERFORMANCE_OPTIMIZATION.md) for complete documentation.**
+**See [Jellyfin Guide](docs/JELLYFIN.md) for complete documentation on performance optimization and hardware acceleration.**
 
 ## 📚 Documentation
 
+### Core Documentation
+
 - [Security Guide](docs/SECURITY.md) - Complete security documentation and checklist
+- [Homelab Tools](docs/HOMELAB_TOOLS.md) - Python CLI tools for storage, backups, health checks, and performance monitoring
+- [Storage Box Guide](docs/STORAGE_BOX.md) - Complete Hetzner Storage Box setup, migration, and troubleshooting
 - [Media Services](docs/MEDIA_SERVICES.md) - Navidrome and Audiobookshelf setup
-- [Storage Box Setup](docs/STORAGE_BOX_SETUP.md) - Hetzner Storage Box configuration
-- [Jellyfin Performance Optimization](docs/JELLYFIN_PERFORMANCE_OPTIMIZATION.md) - Transcoding performance tuning
-- [Jellyfin Hardware Acceleration](docs/JELLYFIN_HARDWARE_ACCELERATION.md) - GPU acceleration setup
+
+### Service-Specific Guides
+
+- [Jellyfin Guide](docs/JELLYFIN.md) - Performance optimization, hardware acceleration, and transcoding configuration
+- [Trakt Integration](docs/TRAKT.md) - Trakt setup with Jellyfin for watch history, ratings, and collections
+- [LazyLibrarian Guide](docs/LAZYLIBRARIAN.md) - API configuration, HTTPS access, and Prowlarr integration
+- [qBittorrent Guide](docs/QBITTORRENT.md) - Arr stack integration, security verification, and download configuration
+
+### Additional Documentation
+
+- [Arr Stack Media Integration](docs/ARR_STACK_MEDIA_INTEGRATION.md) - Integration between Arr services and media servers
+- [Immich Backup Setup](docs/IMMICH_BACKUP_SETUP.md) - Immich backup configuration and scheduling
+- [Tailscale Troubleshooting](docs/TAILSCALE_TROUBLESHOOTING.md) - Tailscale setup and common issues
 
 ## 🤝 Contributing
 

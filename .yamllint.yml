@@ -43,3 +43,5 @@ ignore: |
   node_modules/
   venv/
   __pycache__/
+  docs/
+  .wiki/

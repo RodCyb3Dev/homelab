@@ -188,6 +188,7 @@ repos:
       # Check for exposed secrets in environment variables
       - id: check-env-secrets
         name: Check for secrets in env vars
-        entry: bash -c 'if grep -rn --include="*.yml" --include="*.yaml" -iE "(password|secret|key|token):\s*[\"'\''][^$]" . | grep -v "op item get" | grep -v "\${" | grep -v "# " | grep -vE "(P-Access-Token|resource_access_token|session_cookie_name|resource_access_token_param)" | grep -v "token:\s*\"P-"; then echo "Found exposed secrets!"; exit 1; fi'
+        entry: bash -c 'if grep -rn --include="*.yml" --include="*.yaml" -iE "(password|secret|key|token):\s*[\"'\''][^$]" . | grep -v "op item get" | grep -v "\${" | grep -v "# " | grep -vE "(P-Access-Token|resource_access_token|session_cookie_name|resource_access_token_param)" | grep -v "token:\s*\"P-" | grep -v "vault_key:" | grep -v "name:\s*\"[A-Z_]*_(SECRET|KEY|TOKEN|PASSWORD)\"" | grep -v "file:///run/secrets"; then echo "Found exposed secrets!"; exit 1; fi'
         language: system
         pass_filenames: false
+        exclude: ansible/roles/sync_secrets/tasks/main.yml

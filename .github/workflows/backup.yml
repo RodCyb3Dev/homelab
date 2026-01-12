@@ -1,6 +1,20 @@
 ##############################################################################
 # GITHUB ACTIONS - Automated Backup Pipeline
-# Daily backups of configurations and databases to Hetzner Storage Box
+# Daily backups using homelab_tools (BorgBackup) to remote repository
+#
+# Required GitHub Secrets:
+#   - BORG_PASSPHRASE: Passphrase for BorgBackup repository encryption
+#   - SSH_HOST: Server hostname/IP
+#   - SSH_USER: SSH username
+#   - SSH_PRIVATE_KEY: SSH private key for server access
+#   - GOTIFY_URL: Gotify notification URL
+#   - GOTIFY_TOKEN: Gotify notification token
+#
+# Note: Backup repository must be configured in homelab_tools config file
+#       (~/.homelab/config.yaml or /opt/homelab/.homelab/config.yaml)
+#
+# Note: homelab_tools is installed in /opt/tools/ (separate from /opt/homelab/)
+#       This keeps /opt/homelab/ clean for backups (only config files are backed up)
 ##############################################################################
 
 name: Automated Backup
@@ -9,7 +23,7 @@ on:
   schedule:
     # Daily at 03:00 UTC
     - cron: '0 3 * * *'
-  
+ 
   workflow_dispatch:
     inputs:
       backup_type:
@@ -43,67 +57,92 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Execute backup script
-        id: backup
+      - name: Sync systemd files before backup
         run: |
           ssh -o StrictHostKeyChecking=no -p ${{ env.SSH_PORT }} ${{ env.SSH_USER }}@${{ env.SSH_HOST }} << 'EOF'
             set -e
-            
-            echo "💾 Starting backup process..."
+            echo "🔄 Syncing systemd files to /opt/homelab/systemd/..."
             cd ${{ env.DEPLOY_PATH }}
             
-            # Run backup script
-            bash scripts/backup.sh ${{ inputs.backup_type || 'full' }}
-            
-            # Get backup size and location
-            BACKUP_SIZE=$(du -sh /mnt/hetzner-storage/backups/latest | cut -f1)
-            echo "backup_size=$BACKUP_SIZE" >> $GITHUB_OUTPUT
-            
+            # Sync systemd files from /etc/systemd/system/ to /opt/homelab/systemd/
+            python3 -m homelab_tools storage sync-systemd || echo "⚠️  No systemd files to sync (this is OK if none exist)"
+          EOF
+
+      - name: Execute backup using homelab_tools
+        id: backup
+        env:
+          BORG_PASSPHRASE: ${{ secrets.BORG_PASSPHRASE }}
+        run: |
+          ssh -o StrictHostKeyChecking=no -p ${{ env.SSH_PORT }} ${{ env.SSH_USER }}@${{ env.SSH_HOST }} << 'EOF'
+            set -e
+
+            echo "💾 Starting backup process..."
+            cd ${{ env.DEPLOY_PATH }}
+
+            # Map backup types (workflow uses config-only/database-only, CLI uses config/database)
+            BACKUP_TYPE="${{ inputs.backup_type || 'full' }}"
+            case "$BACKUP_TYPE" in
+              "config-only")
+                BACKUP_TYPE="config"
+                ;;
+              "database-only")
+                BACKUP_TYPE="database"
+                ;;
+            esac
+
+            # Run backup using homelab_tools (backs up entire /opt/homelab folder)
+            export BORG_PASSPHRASE="${{ secrets.BORG_PASSPHRASE }}"
+            python3 -m homelab_tools backup create --type "$BACKUP_TYPE" --repository primary
+
             echo "✅ Backup completed successfully!"
-            echo "📦 Backup size: $BACKUP_SIZE"
+            
+            # Get backup info for display
+            BACKUP_INFO=$(python3 -m homelab_tools backup list --repository primary | tail -1 || echo "N/A")
+            echo "📦 Latest backup: $BACKUP_INFO"
           EOF
 
       - name: Verify backup integrity
+        env:
+          BORG_PASSPHRASE: ${{ secrets.BORG_PASSPHRASE }}
         run: |
           ssh -o StrictHostKeyChecking=no -p ${{ env.SSH_PORT }} ${{ env.SSH_USER }}@${{ env.SSH_HOST }} << 'EOF'
+            set -e
             echo "🔍 Verifying backup integrity..."
             cd ${{ env.DEPLOY_PATH }}
-            
-            # Verify backup files exist
-            if [ ! -d "/mnt/hetzner-storage/backups/latest" ]; then
-              echo "❌ Backup directory not found!"
+
+            # Verify repository integrity using homelab_tools
+            export BORG_PASSPHRASE="${{ secrets.BORG_PASSPHRASE }}"
+            if python3 -m homelab_tools backup verify --repository primary; then
+              echo "✅ Backup repository integrity verified!"
+            else
+              echo "❌ Backup repository verification failed!"
               exit 1
             fi
-            
-            # Verify critical files
-            REQUIRED_FILES=(
-              "config/traefik/acme.json"
-              "config/crowdsec/db"
-              "config/authelia"
-            )
-            
-            for file in "${REQUIRED_FILES[@]}"; do
-              if [ ! -e "/mnt/hetzner-storage/backups/latest/$file" ]; then
-                echo "❌ Missing critical file: $file"
-                exit 1
-              fi
-            done
-            
-            echo "✅ Backup integrity verified!"
+
+            # Verify backups exist
+            BACKUP_COUNT=$(python3 -m homelab_tools backup list --repository primary | wc -l)
+            if [ "$BACKUP_COUNT" -eq 0 ]; then
+              echo "❌ No backups found in repository!"
+              exit 1
+            fi
+
+            echo "✅ Found $BACKUP_COUNT backup(s) in repository"
           EOF
 
-      - name: Cleanup old backups
+      - name: Prune old backups
+        env:
+          BORG_PASSPHRASE: ${{ secrets.BORG_PASSPHRASE }}
         run: |
           ssh -o StrictHostKeyChecking=no -p ${{ env.SSH_PORT }} ${{ env.SSH_USER }}@${{ env.SSH_HOST }} << 'EOF'
-            echo "🧹 Cleaning up old backups..."
-            
-            # Keep last 30 days of backups
-            find /mnt/hetzner-storage/backups/ -type d -name "backup-*" -mtime +30 -exec rm -rf {} +
-            
-            # Keep last 7 weekly backups
-            # Keep last 3 monthly backups
-            
-            echo "✅ Cleanup completed!"
+            set -e
+            echo "🧹 Pruning old backups..."
+            cd ${{ env.DEPLOY_PATH }}
+
+            # Prune old backups using homelab_tools (keeps 14 daily, 12 weekly, 24 monthly)
+            export BORG_PASSPHRASE="${{ secrets.BORG_PASSPHRASE }}"
+            python3 -m homelab_tools backup prune --repository primary --keep-daily 14 --keep-weekly 12 --keep-monthly 24
+
+            echo "✅ Backup pruning completed!"
           EOF
 
       - name: Notify success
@@ -111,7 +150,7 @@ jobs:
         run: |
           curl -X POST "${{ env.GOTIFY_URL }}/message?token=${{ env.GOTIFY_TOKEN }}" \
             -F "title=✅ Backup Successful" \
-            -F "message=Daily backup completed successfully. Size: ${{ steps.backup.outputs.backup_size }}" \
+            -F "message=Daily backup completed successfully using homelab_tools (BorgBackup)" \
             -F "priority=5"
 
       - name: Notify failure
@@ -137,22 +176,31 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Generate report
+        env:
+          BORG_PASSPHRASE: ${{ secrets.BORG_PASSPHRASE }}
         run: |
           ssh -o StrictHostKeyChecking=no -p ${{ env.SSH_PORT }} ${{ env.SSH_USER }}@${{ env.SSH_HOST }} << 'EOF'
+            set -e
             echo "📊 Generating backup report..."
-            
-            # Count total backups
-            TOTAL_BACKUPS=$(find /mnt/hetzner-storage/backups/ -maxdepth 1 -type d -name "backup-*" | wc -l)
-            
-            # Calculate total size
-            TOTAL_SIZE=$(du -sh /mnt/hetzner-storage/backups/ | cut -f1)
-            
-            # Get oldest backup
-            OLDEST_BACKUP=$(find /mnt/hetzner-storage/backups/ -maxdepth 1 -type d -name "backup-*" -printf '%T+ %p\n' | sort | head -1 | cut -d' ' -f2)
-            
-            echo "📊 Backup Statistics:"
-            echo "  Total backups: $TOTAL_BACKUPS"
-            echo "  Total size: $TOTAL_SIZE"
-            echo "  Oldest backup: $(basename $OLDEST_BACKUP)"
-          EOF
+            cd ${{ env.DEPLOY_PATH }}
 
+            export BORG_PASSPHRASE="${{ secrets.BORG_PASSPHRASE }}"
+
+            # List all backups
+            BACKUP_LIST=$(python3 -m homelab_tools backup list --repository primary)
+            TOTAL_BACKUPS=$(echo "$BACKUP_LIST" | wc -l)
+
+            # Get latest backup
+            LATEST_BACKUP=$(echo "$BACKUP_LIST" | head -1)
+
+            # Get oldest backup
+            OLDEST_BACKUP=$(echo "$BACKUP_LIST" | tail -1)
+
+            echo "📊 Backup Statistics (Borg Repository):"
+            echo "  Total backups: $TOTAL_BACKUPS"
+            echo "  Latest backup: $LATEST_BACKUP"
+            echo "  Oldest backup: $OLDEST_BACKUP"
+            echo ""
+            echo "Backup List:"
+            echo "$BACKUP_LIST"
+          EOF

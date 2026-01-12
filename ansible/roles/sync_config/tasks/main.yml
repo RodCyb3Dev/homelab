@@ -32,6 +32,7 @@
     - audiobookshelf
     - navidrome
     - lazylibrarian
+    - performance
   tags: sync_config
 
 - name: Sync docker-compose.yml (core)
@@ -97,6 +98,14 @@
   when: compose_file_name | default('') == 'docker-compose.media.yml' or compose_file_name | default('') == ''
   tags: sync_config
 
+- name: Sync docker-compose.performance.yml
+  synchronize:
+    src: "{{ inventory_dir }}/../docker-compose.performance.yml"
+    dest: "{{ deploy_path }}/docker-compose.performance.yml"
+    mode: push
+    perms: yes
+  tags: sync_config
+
 - name: Check which docker-compose files exist
   stat:
     path: "{{ deploy_path }}/{{ item }}"
@@ -109,6 +118,7 @@
     - docker-compose.pdf.yml
     - docker-compose.monitoring.yml
     - docker-compose.media.yml
+    - docker-compose.performance.yml
   tags: sync_config
 
 - name: Set ownership of docker-compose files

@@ -66,15 +66,16 @@ ps: ## Show running services
 
 health: ## Check health of all services
 	@echo "Checking service health..."
-	@bash scripts/health-check.sh
+	@python3 -m homelab_tools health-check --local
 
 backup: ## Backup configurations and databases
 	@echo "Running backup..."
-	@bash scripts/backup.sh
+	@python3 -m homelab_tools backup create --type full
 
 restore: ## Restore from backup
 	@echo "Running restore..."
-	@bash scripts/restore.sh
+	@python3 -m homelab_tools restore list
+	@echo "Use 'python3 -m homelab_tools restore extract <archive-name>' to restore"
 
 security-scan: ## Run security vulnerability scan
 	@echo "Running security scan..."
@@ -123,7 +124,10 @@ monitor: ## Open monitoring dashboard URLs
 	@echo "Status: https://status.${DOMAIN}"
 
 setup-storage-box: ## Mount Hetzner Storage Box
-	@bash scripts/setup-storage-box.sh
+	@python3 -m homelab_tools storage mount --box all
+
+storage-status: ## Show Storage Box status
+	@python3 -m homelab_tools storage status
 
 ##############################################################################
 # Development Commands
@@ -234,7 +238,7 @@ ansible-setup-server: ## Create Hetzner server and Storage Box, then configure e
 ##############################################################################
 
 setup-git-hooks: ## Setup Git hooks for security and QA
-	@bash scripts/setup-git-hooks.sh
+	@python3 -m homelab_tools git-hooks install
 
 scan-secrets: ## Scan for hardcoded secrets
 	@echo "🔍 Scanning for secrets..."
@@ -245,7 +249,12 @@ scan-secrets: ## Scan for hardcoded secrets
 	fi
 
 verify-secrets: ## Verify 1Password secrets are accessible
-	@bash scripts/verify-secrets.sh
+	@echo "🔍 Verifying secrets..."
+	@if command -v op >/dev/null 2>&1; then \
+		op inject -i .env.template -o .env.test && echo "✅ Secrets accessible" && rm -f .env.test; \
+	else \
+		echo "⚠️  1Password CLI not installed"; \
+	fi
 
 test-1password: ## Test 1Password integration
 	@bash scripts/test-1password-secrets.sh
@@ -333,5 +342,5 @@ pre-deploy: qa-check verify-secrets health ## Run pre-deployment checks
 # Cleanup Commands
 ##############################################################################
 
-cleanup-old: ## Cleanup old docker-compose directories
-	@bash scripts/cleanup-old-dirs.sh
+cleanup-old: ## Cleanup old docker-compose directories (deprecated - no longer needed)
+	@echo "⚠️  This command is deprecated. Old directories have been removed."
