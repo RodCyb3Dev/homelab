@@ -239,9 +239,17 @@ jobs:
         run: |
           echo "🔍 Auditing YAML configurations..."
           
-          # Check for weak passwords or exposed credentials
-          if grep -r "password.*admin\|password.*123\|secret.*test" config/; then
+          # Check for weak passwords or exposed credentials (exclude comments and examples)
+          # Exclude lines starting with #, example passwords, and docker run commands
+          FOUND=$(grep -r "password.*admin\|password.*123\|secret.*test" config/ \
+            | grep -v "^[[:space:]]*#" \
+            | grep -v "YourSecurePassword" \
+            | grep -v "example\|Example\|EXAMPLE" \
+            | grep -v "docker run.*authelia.*hash generate" || true)
+          
+          if [ -n "$FOUND" ]; then
             echo "❌ Weak or test credentials found!"
+            echo "$FOUND"
             exit 1
           fi
           
