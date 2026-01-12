@@ -390,17 +390,17 @@ jobs:
           ANSIBLE_FILES: ${{ steps.stats.outputs.ansible_files }}
           CONFIG_DIRS: ${{ steps.stats.outputs.config_dirs }}
 
-- name: Commit and push changes
-run: |
-git config --local user.email "github-actions[bot]@users.noreply.github.com"
-git config --local user.name "github-actions[bot]"
-
-git add README.md .wiki/
-
-if git diff --staged --quiet; then
-  echo "No changes to commit"
-else
-  git commit -m "📊 Auto-update project statistics [skip ci]"
-  git push
-  echo "✅ Statistics updated and pushed"
-fi
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          git add README.md .wiki/
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "📊 Auto-update project statistics [skip ci]"
+            git push
+            echo "✅ Statistics updated and pushed"
+          fi
