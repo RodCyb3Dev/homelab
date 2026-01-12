@@ -50,6 +50,9 @@
     - role: deploy_compose
       tags: ['deploy', 'services']
 
+    - role: fix_permissions
+      tags: ['fix_permissions', 'permissions']
+
     - role: health_check
       tags: ['health', 'verify']
 
