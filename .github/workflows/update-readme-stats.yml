@@ -268,94 +268,98 @@ jobs:
           ansible_files = os.environ.get('ANSIBLE_FILES', '0')
           config_dirs = os.environ.get('CONFIG_DIRS', '0')
           
-          # Generate Home.md
-          home_content = f"""# Homelab Infrastructure Wiki
-
-Welcome to the Homelab Infrastructure documentation wiki!
-
-## 📋 Quick Links
-
-- [Project Statistics](./Project-Statistics) - Comprehensive project analytics
-- [Architecture Overview](./Architecture-Overview) - System architecture and design
-- [Documentation Index](./Documentation-Index) - All documentation files
-
-## 🏗️ Infrastructure Overview
-
-This homelab infrastructure includes:
-
-- **Media Services**: Jellyfin, Jellyseerr, Arr stack (Radarr, Sonarr, Prowlarr, Lidarr, LazyLibrarian)
-- **Audio Services**: Audiobookshelf, Navidrome
-- **Photo Management**: Immich
-- **Security**: Authelia, CrowdSec, Fail2ban
-- **Monitoring**: Prometheus, Grafana, Loki, Uptime Kuma
-- **Automation**: Ansible playbooks, Python CLI tools
-
-## 📊 Current Statistics
-
-See the [Project Statistics](./Project-Statistics) page for detailed analytics.
-
-## 🔧 Tools & Technologies
-
-- **Containerization**: Docker & Docker Compose
-- **Orchestration**: Ansible
-- **Reverse Proxy**: Caddy
-- **VPN**: Tailscale
-- **Backup**: BorgBackup
-- **Monitoring**: Prometheus, Grafana, Loki
-
----
-
-*Last updated: {timestamp}*
-"""
+          # Generate Home.md (using list join to avoid triple quote YAML issues)
+          home_lines = [
+              "# Homelab Infrastructure Wiki",
+              "",
+              "Welcome to the Homelab Infrastructure documentation wiki!",
+              "",
+              "## 📋 Quick Links",
+              "",
+              "- [Project Statistics](./Project-Statistics) - Comprehensive project analytics",
+              "- [Architecture Overview](./Architecture-Overview) - System architecture and design",
+              "- [Documentation Index](./Documentation-Index) - All documentation files",
+              "",
+              "## 🏗️ Infrastructure Overview",
+              "",
+              "This homelab infrastructure includes:",
+              "",
+              "- **Media Services**: Jellyfin, Jellyseerr, Arr stack (Radarr, Sonarr, Prowlarr, Lidarr, LazyLibrarian)",
+              "- **Audio Services**: Audiobookshelf, Navidrome",
+              "- **Photo Management**: Immich",
+              "- **Security**: Authelia, CrowdSec, Fail2ban",
+              "- **Monitoring**: Prometheus, Grafana, Loki, Uptime Kuma",
+              "- **Automation**: Ansible playbooks, Python CLI tools",
+              "",
+              "## 📊 Current Statistics",
+              "",
+              "See the [Project Statistics](./Project-Statistics) page for detailed analytics.",
+              "",
+              "## 🔧 Tools & Technologies",
+              "",
+              "- **Containerization**: Docker & Docker Compose",
+              "- **Orchestration**: Ansible",
+              "- **Reverse Proxy**: Caddy",
+              "- **VPN**: Tailscale",
+              "- **Backup**: BorgBackup",
+              "- **Monitoring**: Prometheus, Grafana, Loki",
+              "",
+              "---",
+              "",
+              f"*Last updated: {timestamp}*"
+          ]
+          home_content = "\n".join(home_lines)
           
-          # Generate Project-Statistics.md
-          stats_content = f"""# Project Statistics
-
-Comprehensive analytics and statistics for the Homelab Infrastructure project.
-
-*Last Updated: {timestamp}*  
-*Commit: [{commit_sha}]({commit_url})*  
-*Branch: {branch}*
-
-## 📊 File Statistics
-
-| **Type** | **Files** | **Lines** |
-|----------|-----------|-----------|
-| **Total Files** | {total_files} | - |
-| **Python** | {python_files} | {python_lines} |
-| **YAML** | {yaml_files} | {yaml_lines} |
-| **Shell Scripts** | {shell_files} | {shell_lines} |
-| **Markdown** | {md_files} | {md_lines} |
-| **Total Code Lines** | - | {total_lines}+ |
-
-## 🐳 Docker Infrastructure
-
-| **Metric** | **Count** |
-|------------|-----------|
-| **Docker Services** | {services} |
-| **Docker Compose Files** | {compose_files} |
-
-## 🔧 Infrastructure Components
-
-| **Component** | **Count** |
-|---------------|-----------|
-| **Ansible Playbooks** | {ansible_files} |
-| **Config Directories** | {config_dirs} |
-
-## 📈 Growth Trends
-
-Statistics are automatically updated daily via GitHub Actions.
-
-## 🔍 Analysis Tools
-
-- **Code Analysis**: GitHub Actions workflows
-- **Security Scanning**: Trivy, Docker Scout
-- **Quality Checks**: Prettier, ShellCheck, YAML Lint
-
----
-
-[← Back to Home](./Home)
-"""
+          # Generate Project-Statistics.md (using list join to avoid triple quote YAML issues)
+          stats_lines = [
+              "# Project Statistics",
+              "",
+              "Comprehensive analytics and statistics for the Homelab Infrastructure project.",
+              "",
+              f"*Last Updated: {timestamp}*  ",
+              f"*Commit: [{commit_sha}]({commit_url})*  ",
+              f"*Branch: {branch}*",
+              "",
+              "## 📊 File Statistics",
+              "",
+              "| **Type** | **Files** | **Lines** |",
+              "|----------|-----------|-----------|",
+              f"| **Total Files** | {total_files} | - |",
+              f"| **Python** | {python_files} | {python_lines} |",
+              f"| **YAML** | {yaml_files} | {yaml_lines} |",
+              f"| **Shell Scripts** | {shell_files} | {shell_lines} |",
+              f"| **Markdown** | {md_files} | {md_lines} |",
+              f"| **Total Code Lines** | - | {total_lines}+ |",
+              "",
+              "## 🐳 Docker Infrastructure",
+              "",
+              "| **Metric** | **Count** |",
+              "|------------|-----------|",
+              f"| **Docker Services** | {services} |",
+              f"| **Docker Compose Files** | {compose_files} |",
+              "",
+              "## 🔧 Infrastructure Components",
+              "",
+              "| **Component** | **Count** |",
+              "|---------------|-----------|",
+              f"| **Ansible Playbooks** | {ansible_files} |",
+              f"| **Config Directories** | {config_dirs} |",
+              "",
+              "## 📈 Growth Trends",
+              "",
+              "Statistics are automatically updated daily via GitHub Actions.",
+              "",
+              "## 🔍 Analysis Tools",
+              "",
+              "- **Code Analysis**: GitHub Actions workflows",
+              "- **Security Scanning**: Trivy, Docker Scout",
+              "- **Quality Checks**: Prettier, ShellCheck, YAML Lint",
+              "",
+              "---",
+              "",
+              "[← Back to Home](./Home)"
+          ]
+          stats_content = "\n".join(stats_lines)
           
           # Write files
           with open('.wiki/Home.md', 'w') as f:
