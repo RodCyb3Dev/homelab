@@ -100,5 +100,5 @@
 
 - name: Display installation status
   debug:
-    msg: "homelab-tools installed successfully" if homelab_tools_check.rc == 0 else "homelab-tools installation may have issues"
+    msg: "{{ 'homelab-tools installed successfully' if homelab_tools_check.rc == 0 else 'homelab-tools installation may have issues' }}"
   tags: install_homelab_tools

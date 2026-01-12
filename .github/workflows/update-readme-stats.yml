@@ -122,192 +122,285 @@ jobs:
       - name: Update README.md with statistics
         run: |
           echo "📝 Updating README.md with statistics..."
-
+          
           # Check if README.md exists
           if [ ! -f README.md ]; then
             echo "❌ README.md not found!"
             exit 1
           fi
-
+          
           # Use Python to replace the stats section
-          python3 << EOF
+          python3 << 'PYTHON_EOF'
           import re
-
+          import os
+          
           # Read README
           with open('README.md', 'r') as f:
               content = f.read()
+          
+          # Get values from environment (set by GitHub Actions)
+          timestamp = os.environ.get('TIMESTAMP', '')
+          commit_sha = os.environ.get('COMMIT_SHA', '')
+          commit_url = os.environ.get('COMMIT_URL', '')
+          branch = os.environ.get('BRANCH', '')
+          total_files = os.environ.get('TOTAL_FILES', '0')
+          total_lines = os.environ.get('TOTAL_LINES', '0')
+          python_files = os.environ.get('PYTHON_FILES', '0')
+          python_lines = os.environ.get('PYTHON_LINES', '0')
+          yaml_files = os.environ.get('YAML_FILES', '0')
+          yaml_lines = os.environ.get('YAML_LINES', '0')
+          shell_files = os.environ.get('SHELL_FILES', '0')
+          shell_lines = os.environ.get('SHELL_LINES', '0')
+          md_files = os.environ.get('MD_FILES', '0')
+          services = os.environ.get('SERVICES', '0')
+          compose_files = os.environ.get('COMPOSE_FILES', '0')
+          ansible_files = os.environ.get('ANSIBLE_FILES', '0')
+          config_dirs = os.environ.get('CONFIG_DIRS', '0')
+          
+          # Build stats section (using list join to avoid triple quote issues in YAML)
+          stats_lines = [
+              "<!-- AUTO-GENERATED STATS - DO NOT EDIT MANUALLY -->",
+              "<!-- STATS_START -->",
+              "",
+              f"**Last Updated**: {timestamp} | **Commit**: [{commit_sha}]({commit_url}) | **Branch**: {branch}",
+              "",
+              "## 📊 Quick Statistics",
+              "",
+              "| **Metric**        | **Count** | **Details**                                              |",
+              "| ----------------- | --------- | ------------------------------------------------------------- |",
+              f"| **Total Files**   | {total_files}       | [📈 Full Analysis](../../wiki/Project-Statistics)             |",
+              f"| **Code Lines**    | {total_lines}+   | [🏗️ Architecture Overview](../../wiki/Architecture-Overview) |",
+              f"| **Python**        | {python_files} files | {python_lines} lines                                                  |",
+              f"| **YAML**          | {yaml_files} files  | {yaml_lines} lines                                                   |",
+              f"| **Shell Scripts** | {shell_files} files | {shell_lines} lines                                                  |",
+              f"| **Documentation** | {md_files} files  | [📚 Documentation Index](../../wiki/Documentation-Index)      |",
+              f"| **Docker Services** | {services} services | {compose_files} compose files |",
+              "",
+              "### 🚀 Key Components",
+              "",
+              "| **Component**        | **Files** | **Purpose**         |",
+              "| -------------------- | --------- | ------------------- |",
+              f"| **Python Tools**     | {python_files}       | CLI & automation     |",
+              f"| **Ansible Playbooks** | {ansible_files}       | Infrastructure as code   |",
+              f"| **Config Directories**   | {config_dirs}        | Service configurations |",
+              "",
+              "---",
+              "",
+              "📚 **[View Complete Analytics in Wiki →](../../wiki/Home)**  ",
+              "🔍 **[Detailed Statistics →](../../wiki/Project-Statistics)**  ",
+              "🏗️ **[Architecture Overview →](../../wiki/Architecture-Overview)**",
+              "",
+              "<!-- STATS_END -->"
+          ]
+          stats_section = "\n".join(stats_lines)
+          
+          # Replace stats section if it exists
+          pattern = r'<!-- STATS_START -->.*?<!-- STATS_END -->'
+          
+          if re.search(pattern, content, re.DOTALL):
+              # Replace existing section
+              new_content = re.sub(pattern, stats_section.strip(), content, flags=re.DOTALL)
+              print("✅ Updated existing stats section in README.md")
+          else:
+              # Find insertion point (after Features section, before Table of Contents)
+              toc_pattern = r'(## 📋 Table of Contents)'
+              if re.search(toc_pattern, content):
+                  new_content = re.sub(
+                      toc_pattern,
+                      stats_section.strip() + '\n\n' + r'\1',
+                      content
+                  )
+                  print("✅ Added new stats section before Table of Contents")
+              else:
+                  # Append at the end
+                  new_content = content + '\n\n' + stats_section.strip()
+                  print("✅ Added new stats section at the end")
+          
+          # Write updated README
+          with open('README.md', 'w') as f:
+              f.write(new_content)
+          PYTHON_EOF
+        env:
+          TIMESTAMP: ${{ steps.stats.outputs.timestamp }}
+          COMMIT_SHA: ${{ steps.stats.outputs.commit_sha }}
+          COMMIT_URL: ${{ steps.stats.outputs.commit_url }}
+          BRANCH: ${{ steps.stats.outputs.branch }}
+          TOTAL_FILES: ${{ steps.stats.outputs.total_files }}
+          TOTAL_LINES: ${{ steps.stats.outputs.total_lines }}
+          PYTHON_FILES: ${{ steps.stats.outputs.python_files }}
+          PYTHON_LINES: ${{ steps.stats.outputs.python_lines }}
+          YAML_FILES: ${{ steps.stats.outputs.yaml_files }}
+          YAML_LINES: ${{ steps.stats.outputs.yaml_lines }}
+          SHELL_FILES: ${{ steps.stats.outputs.shell_files }}
+          SHELL_LINES: ${{ steps.stats.outputs.shell_lines }}
+          MD_FILES: ${{ steps.stats.outputs.md_files }}
+          SERVICES: ${{ steps.stats.outputs.services }}
+          COMPOSE_FILES: ${{ steps.stats.outputs.compose_files }}
+          ANSIBLE_FILES: ${{ steps.stats.outputs.ansible_files }}
+          CONFIG_DIRS: ${{ steps.stats.outputs.config_dirs }}
 
-          # Build stats section with actual values
-          stats_section = f"""<!-- AUTO-GENERATED STATS - DO NOT EDIT MANUALLY -->
-<!-- STATS_START -->
+      - name: Generate Wiki Pages
+        run: |
+          echo "📚 Generating wiki pages..."
+          
+          mkdir -p .wiki
+          
+          # Use Python to generate wiki pages (avoids YAML heredoc parsing issues)
+          python3 << 'PYTHON_WIKI_EOF'
+          import os
+          
+          timestamp = os.environ.get('TIMESTAMP', '')
+          commit_sha = os.environ.get('COMMIT_SHA', '')
+          commit_url = os.environ.get('COMMIT_URL', '')
+          branch = os.environ.get('BRANCH', '')
+          total_files = os.environ.get('TOTAL_FILES', '0')
+          total_lines = os.environ.get('TOTAL_LINES', '0')
+          python_files = os.environ.get('PYTHON_FILES', '0')
+          python_lines = os.environ.get('PYTHON_LINES', '0')
+          yaml_files = os.environ.get('YAML_FILES', '0')
+          yaml_lines = os.environ.get('YAML_LINES', '0')
+          shell_files = os.environ.get('SHELL_FILES', '0')
+          shell_lines = os.environ.get('SHELL_LINES', '0')
+          md_files = os.environ.get('MD_FILES', '0')
+          md_lines = os.environ.get('MD_LINES', '0')
+          services = os.environ.get('SERVICES', '0')
+          compose_files = os.environ.get('COMPOSE_FILES', '0')
+          ansible_files = os.environ.get('ANSIBLE_FILES', '0')
+          config_dirs = os.environ.get('CONFIG_DIRS', '0')
+          
+          # Generate Home.md (using list join to avoid triple quote YAML issues)
+          home_lines = [
+              "# Homelab Infrastructure Wiki",
+              "",
+              "Welcome to the Homelab Infrastructure documentation wiki!",
+              "",
+              "## 📋 Quick Links",
+              "",
+              "- [Project Statistics](./Project-Statistics) - Comprehensive project analytics",
+              "- [Architecture Overview](./Architecture-Overview) - System architecture and design",
+              "- [Documentation Index](./Documentation-Index) - All documentation files",
+              "",
+              "## 🏗️ Infrastructure Overview",
+              "",
+              "This homelab infrastructure includes:",
+              "",
+              "- **Media Services**: Jellyfin, Jellyseerr, Arr stack (Radarr, Sonarr, Prowlarr, Lidarr, LazyLibrarian)",
+              "- **Audio Services**: Audiobookshelf, Navidrome",
+              "- **Photo Management**: Immich",
+              "- **Security**: Authelia, CrowdSec, Fail2ban",
+              "- **Monitoring**: Prometheus, Grafana, Loki, Uptime Kuma",
+              "- **Automation**: Ansible playbooks, Python CLI tools",
+              "",
+              "## 📊 Current Statistics",
+              "",
+              "See the [Project Statistics](./Project-Statistics) page for detailed analytics.",
+              "",
+              "## 🔧 Tools & Technologies",
+              "",
+              "- **Containerization**: Docker & Docker Compose",
+              "- **Orchestration**: Ansible",
+              "- **Reverse Proxy**: Caddy",
+              "- **VPN**: Tailscale",
+              "- **Backup**: BorgBackup",
+              "- **Monitoring**: Prometheus, Grafana, Loki",
+              "",
+              "---",
+              "",
+              f"*Last updated: {timestamp}*"
+          ]
+          home_content = "\n".join(home_lines)
+          
+          # Generate Project-Statistics.md (using list join to avoid triple quote YAML issues)
+          stats_lines = [
+              "# Project Statistics",
+              "",
+              "Comprehensive analytics and statistics for the Homelab Infrastructure project.",
+              "",
+              f"*Last Updated: {timestamp}*  ",
+              f"*Commit: [{commit_sha}]({commit_url})*  ",
+              f"*Branch: {branch}*",
+              "",
+              "## 📊 File Statistics",
+              "",
+              "| **Type** | **Files** | **Lines** |",
+              "|----------|-----------|-----------|",
+              f"| **Total Files** | {total_files} | - |",
+              f"| **Python** | {python_files} | {python_lines} |",
+              f"| **YAML** | {yaml_files} | {yaml_lines} |",
+              f"| **Shell Scripts** | {shell_files} | {shell_lines} |",
+              f"| **Markdown** | {md_files} | {md_lines} |",
+              f"| **Total Code Lines** | - | {total_lines}+ |",
+              "",
+              "## 🐳 Docker Infrastructure",
+              "",
+              "| **Metric** | **Count** |",
+              "|------------|-----------|",
+              f"| **Docker Services** | {services} |",
+              f"| **Docker Compose Files** | {compose_files} |",
+              "",
+              "## 🔧 Infrastructure Components",
+              "",
+              "| **Component** | **Count** |",
+              "|---------------|-----------|",
+              f"| **Ansible Playbooks** | {ansible_files} |",
+              f"| **Config Directories** | {config_dirs} |",
+              "",
+              "## 📈 Growth Trends",
+              "",
+              "Statistics are automatically updated daily via GitHub Actions.",
+              "",
+              "## 🔍 Analysis Tools",
+              "",
+              "- **Code Analysis**: GitHub Actions workflows",
+              "- **Security Scanning**: Trivy, Docker Scout",
+              "- **Quality Checks**: Prettier, ShellCheck, YAML Lint",
+              "",
+              "---",
+              "",
+              "[← Back to Home](./Home)"
+          ]
+          stats_content = "\n".join(stats_lines)
+          
+          # Write files
+          with open('.wiki/Home.md', 'w') as f:
+              f.write(home_content)
+          
+          with open('.wiki/Project-Statistics.md', 'w') as f:
+              f.write(stats_content)
+          
+          print("✅ Wiki pages generated in .wiki/ directory")
+          PYTHON_WIKI_EOF
+        env:
+          TIMESTAMP: ${{ steps.stats.outputs.timestamp }}
+          COMMIT_SHA: ${{ steps.stats.outputs.commit_sha }}
+          COMMIT_URL: ${{ steps.stats.outputs.commit_url }}
+          BRANCH: ${{ steps.stats.outputs.branch }}
+          TOTAL_FILES: ${{ steps.stats.outputs.total_files }}
+          TOTAL_LINES: ${{ steps.stats.outputs.total_lines }}
+          PYTHON_FILES: ${{ steps.stats.outputs.python_files }}
+          PYTHON_LINES: ${{ steps.stats.outputs.python_lines }}
+          YAML_FILES: ${{ steps.stats.outputs.yaml_files }}
+          YAML_LINES: ${{ steps.stats.outputs.yaml_lines }}
+          SHELL_FILES: ${{ steps.stats.outputs.shell_files }}
+          SHELL_LINES: ${{ steps.stats.outputs.shell_lines }}
+          MD_FILES: ${{ steps.stats.outputs.md_files }}
+          MD_LINES: ${{ steps.stats.outputs.md_lines }}
+          SERVICES: ${{ steps.stats.outputs.services }}
+          COMPOSE_FILES: ${{ steps.stats.outputs.compose_files }}
+          ANSIBLE_FILES: ${{ steps.stats.outputs.ansible_files }}
+          CONFIG_DIRS: ${{ steps.stats.outputs.config_dirs }}
 
-**Last Updated**: ${{ steps.stats.outputs.timestamp }} | **Commit**: [${{ steps.stats.outputs.commit_sha }}](${{ steps.stats.outputs.commit_url }}) | **Branch**: ${{ steps.stats.outputs.branch }}
-
-## 📊 Quick Statistics
-
-| **Metric**        | **Count** | **Details**                                              |
-| ----------------- | --------- | ------------------------------------------------------------- |
-| **Total Files**   | ${{ steps.stats.outputs.total_files }}       | [📈 Full Analysis](../../wiki/Project-Statistics)             |
-| **Code Lines**    | ${{ steps.stats.outputs.total_lines }}+   | [🏗️ Architecture Overview](../../wiki/Architecture-Overview) |
-| **Python**        | ${{ steps.stats.outputs.python_files }} files | ${{ steps.stats.outputs.python_lines }} lines                                                  |
-| **YAML**          | ${{ steps.stats.outputs.yaml_files }} files  | ${{ steps.stats.outputs.yaml_lines }} lines                                                   |
-| **Shell Scripts** | ${{ steps.stats.outputs.shell_files }} files | ${{ steps.stats.outputs.shell_lines }} lines                                                  |
-| **Documentation** | ${{ steps.stats.outputs.md_files }} files  | [📚 Documentation Index](../../wiki/Documentation-Index)      |
-| **Docker Services** | ${{ steps.stats.outputs.services }} services | ${{ steps.stats.outputs.compose_files }} compose files |
-
-### 🚀 Key Components
-
-| **Component**        | **Files** | **Purpose**         |
-| -------------------- | --------- | ------------------- |
-| **Python Tools**     | ${{ steps.stats.outputs.python_files }}       | CLI & automation     |
-| **Ansible Playbooks** | ${{ steps.stats.outputs.ansible_files }}       | Infrastructure as code   |
-| **Config Directories**   | ${{ steps.stats.outputs.config_dirs }}        | Service configurations |
-
----
-
-📚 **[View Complete Analytics in Wiki →](../../wiki/Home)**  
-🔍 **[Detailed Statistics →](../../wiki/Project-Statistics)**  
-🏗️ **[Architecture Overview →](../../wiki/Architecture-Overview)**
-
-<!-- STATS_END -->"""
-
-# Replace stats section if it exists
-pattern = r'<!-- STATS_START -->.*?<!-- STATS_END -->'
-
-if re.search(pattern, content, re.DOTALL):
-    # Replace existing section
-    new_content = re.sub(pattern, stats_section.strip(), content, flags=re.DOTALL)
-    print("✅ Updated existing stats section in README.md")
-else:
-    # Find insertion point (after Features section, before Table of Contents)
-    toc_pattern = r'(## 📋 Table of Contents)'
-    if re.search(toc_pattern, content):
-        new_content = re.sub(
-            toc_pattern,
-            stats_section.strip() + '\n\n' + r'\1',
-            content
-        )
-        print("✅ Added new stats section before Table of Contents")
-    else:
-        # Append at the end
-        new_content = content + '\n\n' + stats_section.strip()
-        print("✅ Added new stats section at the end")
-
-# Write updated README
-with open('README.md', 'w') as f:
-    f.write(new_content)
-EOF
-
-- name: Generate Wiki Pages
-run: |
-echo "📚 Generating wiki pages..."
-
-mkdir -p .wiki
-
-# Generate Home.md (use EOF without quotes to allow GitHub Actions variable expansion)
-cat > .wiki/Home.md << EOF
-# Homelab Infrastructure Wiki
-
-Welcome to the Homelab Infrastructure documentation wiki!
-
-## 📋 Quick Links
-
-- [Project Statistics](./Project-Statistics) - Comprehensive project analytics
-- [Architecture Overview](./Architecture-Overview) - System architecture and design
-- [Documentation Index](./Documentation-Index) - All documentation files
-
-## 🏗️ Infrastructure Overview
-
-This homelab infrastructure includes:
-
-- **Media Services**: Jellyfin, Jellyseerr, Arr stack (Radarr, Sonarr, Prowlarr, Lidarr, LazyLibrarian)
-- **Audio Services**: Audiobookshelf, Navidrome
-- **Photo Management**: Immich
-- **Security**: Authelia, CrowdSec, Fail2ban
-- **Monitoring**: Prometheus, Grafana, Loki, Uptime Kuma
-- **Automation**: Ansible playbooks, Python CLI tools
-
-## 📊 Current Statistics
-
-See the [Project Statistics](./Project-Statistics) page for detailed analytics.
-
-## 🔧 Tools & Technologies
-
-- **Containerization**: Docker & Docker Compose
-- **Orchestration**: Ansible
-- **Reverse Proxy**: Caddy
-- **VPN**: Tailscale
-- **Backup**: BorgBackup
-- **Monitoring**: Prometheus, Grafana, Loki
-
----
-
-*Last updated: ${{ steps.stats.outputs.timestamp }}*
-EOF
-
-# Generate Project-Statistics.md
-cat > .wiki/Project-Statistics.md << EOF
-# Project Statistics
-
-Comprehensive analytics and statistics for the Homelab Infrastructure project.
-
-*Last Updated: ${{ steps.stats.outputs.timestamp }}*  
-*Commit: [${{ steps.stats.outputs.commit_sha }}](${{ steps.stats.outputs.commit_url }})*  
-*Branch: ${{ steps.stats.outputs.branch }}*
-
-## 📊 File Statistics
-
-| **Type** | **Files** | **Lines** |
-|----------|-----------|-----------|
-| **Total Files** | ${{ steps.stats.outputs.total_files }} | - |
-| **Python** | ${{ steps.stats.outputs.python_files }} | ${{ steps.stats.outputs.python_lines }} |
-| **YAML** | ${{ steps.stats.outputs.yaml_files }} | ${{ steps.stats.outputs.yaml_lines }} |
-| **Shell Scripts** | ${{ steps.stats.outputs.shell_files }} | ${{ steps.stats.outputs.shell_lines }} |
-| **Markdown** | ${{ steps.stats.outputs.md_files }} | ${{ steps.stats.outputs.md_lines }} |
-| **Total Code Lines** | - | ${{ steps.stats.outputs.total_lines }}+ |
-
-## 🐳 Docker Infrastructure
-
-| **Metric** | **Count** |
-|------------|-----------|
-| **Docker Services** | ${{ steps.stats.outputs.services }} |
-| **Docker Compose Files** | ${{ steps.stats.outputs.compose_files }} |
-
-## 🔧 Infrastructure Components
-
-| **Component** | **Count** |
-|---------------|-----------|
-| **Ansible Playbooks** | ${{ steps.stats.outputs.ansible_files }} |
-| **Config Directories** | ${{ steps.stats.outputs.config_dirs }} |
-
-## 📈 Growth Trends
-
-Statistics are automatically updated daily via GitHub Actions.
-
-## 🔍 Analysis Tools
-
-- **Code Analysis**: GitHub Actions workflows
-- **Security Scanning**: Trivy, Docker Scout
-- **Quality Checks**: Prettier, ShellCheck, YAML Lint
-
----
-
-[← Back to Home](./Home)
-EOF
-
-echo "✅ Wiki pages generated in .wiki/ directory"
-
-- name: Commit and push changes
-run: |
-git config --local user.email "github-actions[bot]@users.noreply.github.com"
-git config --local user.name "github-actions[bot]"
-
-git add README.md .wiki/
-
-if git diff --staged --quiet; then
-  echo "No changes to commit"
-else
-  git commit -m "📊 Auto-update project statistics [skip ci]"
-  git push
-  echo "✅ Statistics updated and pushed"
-fi
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          git add README.md .wiki/
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "📊 Auto-update project statistics [skip ci]"
+            git push
+            echo "✅ Statistics updated and pushed"
+          fi
