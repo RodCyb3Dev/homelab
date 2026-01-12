@@ -20,18 +20,18 @@ check-env: ## Check if .env file exists
 
 generate-secrets: ## Generate random secrets for Authelia
 	@echo "Generating secrets..."
-	@mkdir -p config/authelia config/traefik
+	@mkdir -p config/authelia config/caddy
 	@openssl rand -hex 32 > config/authelia/jwt_secret.txt
 	@openssl rand -hex 32 > config/authelia/session_secret.txt
 	@openssl rand -hex 32 > config/authelia/storage_encryption_key.txt
 	@chmod 600 config/authelia/*.txt
 	@echo "Secrets generated in config/authelia/"
 
-setup-acme: ## Setup ACME certificate file
-	@mkdir -p config/traefik
-	@touch config/traefik/acme.json
-	@chmod 600 config/traefik/acme.json
-	@echo "ACME certificate file created"
+setup-caddy: ## Setup Caddy Cloudflare token file
+	@mkdir -p config/caddy
+	@touch config/caddy/cf-token
+	@chmod 600 config/caddy/cf-token
+	@echo "Caddy Cloudflare token file created"
 
 up: check-env ## Start all services
 	@echo "Starting homelab infrastructure..."
@@ -52,8 +52,8 @@ stop: ## Stop all services without removing containers
 logs: ## View logs from all services
 	@docker-compose logs -f --tail=100
 
-logs-traefik: ## View Traefik logs
-	@docker-compose logs -f traefik
+logs-caddy: ## View Caddy logs
+	@docker-compose logs -f caddy
 
 logs-crowdsec: ## View CrowdSec logs
 	@docker-compose logs -f crowdsec
@@ -119,7 +119,7 @@ clean-all: ## WARNING: Remove all data including volumes
 
 monitor: ## Open monitoring dashboard URLs
 	@echo "Opening monitoring dashboards..."
-	@echo "Traefik: https://traefik.${DOMAIN}"
+	@echo "Caddy: https://caddy.${DOMAIN} (if admin enabled)"
 	@echo "Grafana: https://grafana.${DOMAIN}"
 	@echo "Status: https://status.${DOMAIN}"
 
@@ -137,8 +137,8 @@ validate: ## Validate docker-compose.yml syntax
 	@docker-compose config > /dev/null
 	@echo "docker-compose.yml is valid"
 
-test-traefik: ## Test Traefik configuration
-	@docker-compose exec traefik traefik healthcheck --ping
+test-caddy: ## Test Caddy configuration
+	@docker-compose exec caddy caddy validate --config /etc/caddy/Caddyfile
 
 install-deps: ## Install required system dependencies
 	@echo "Installing dependencies..."

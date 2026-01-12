@@ -213,7 +213,7 @@ services:
   ##############################################################################
   # VPN GATEWAY - Gluetun
   # Note: Arr stack services use network_mode: service:gluetun, so they cannot
-  # Note: Services use Tailscale Serve directly, not Caddy/Traefik
+  # Note: Services use Tailscale Serve directly, not Caddy
   # which routes based on Host headers to the appropriate Gluetun port.
   ##############################################################################
 
