@@ -70,16 +70,17 @@
 <!-- AUTO-GENERATED STATS - DO NOT EDIT MANUALLY -->
 <!-- AUTO-GENERATED STATS - DO NOT EDIT MANUALLY -->
 <!-- AUTO-GENERATED STATS - DO NOT EDIT MANUALLY -->
+<!-- AUTO-GENERATED STATS - DO NOT EDIT MANUALLY -->
 <!-- STATS_START -->
 
-**Last Updated**: 2026-01-12 12:04:32 UTC | **Commit**: [0769922](https://github.com/RodCyb3Dev/homelab/commit/0769922) | **Branch**: main
+**Last Updated**: 2026-01-12 12:08:30 UTC | **Commit**: [bd54960](https://github.com/RodCyb3Dev/homelab/commit/bd54960) | **Branch**: main
 
 ## 📊 Quick Statistics
 
 | **Metric**        | **Count** | **Details**                                              |
 | ----------------- | --------- | ------------------------------------------------------------- |
 | **Total Files**   | 156       | [📈 Full Analysis](../../wiki/Project-Statistics)             |
-| **Code Lines**    | 18495+   | [🏗️ Architecture Overview](../../wiki/Architecture-Overview) |
+| **Code Lines**    | 18216+   | [🏗️ Architecture Overview](../../wiki/Architecture-Overview) |
 | **Python**        | 39 files | 4552 lines                                                  |
 | **YAML**          | 45 files  | 7419 lines                                                   |
 | **Shell Scripts** | 4 files | 357 lines                                                  |
