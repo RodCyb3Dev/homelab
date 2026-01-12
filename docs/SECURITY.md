@@ -49,7 +49,7 @@ Layer 6: Tailscale Zero-Trust VPN
 3. Enable Bot Fight Mode: Security → Bots
 4. Configure rate limiting: Security → Rate Limiting
 
-### Layer 2: Traefik Edge Security
+### Layer 2: Caddy Edge Security
 
 **Features:**
 
@@ -102,7 +102,7 @@ docker exec crowdsec cscli decisions delete -i <IP_ADDRESS>
 **Jail Configuration:**
 
 - `sshd`: 3 failures = 1 hour ban
-- `traefik-auth`: 5 failures = 1 hour ban
+- `caddy-auth`: 5 failures = 1 hour ban
 - `authelia`: 5 failures = 1 hour ban
 
 ### Layer 6: Tailscale Zero-Trust VPN

@@ -34,7 +34,7 @@ users:
 # Groups are used in access control rules to grant permissions
 #
 # Available groups:
-#   - admins: Full access to all services including Traefik dashboard and Portainer
+#   - admins: Full access to all services including Caddy admin (if enabled) and Portainer
 #   - users: Standard user access to media and monitoring services
 #   - family: Limited access for family members (if needed)
 ##############################################################################

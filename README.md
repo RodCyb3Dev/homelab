@@ -11,7 +11,7 @@ A production-ready, maximum-security homelab infrastructure with defense-in-dept
 
 ### Security
 
-- ✅ **6-Layer Defense-in-Depth** - Cloudflare WAF, Traefik, CrowdSec, Authelia, Fail2ban, Tailscale
+- ✅ **6-Layer Defense-in-Depth** - Cloudflare WAF, Caddy, CrowdSec, Authelia, Fail2ban, Tailscale
 - ✅ **Zero-Trust Access Control** - SSO with 2FA for all services
 - ✅ **Automated Threat Detection** - CrowdSec IDS/IPS with community blocklists
 - ✅ **TLS 1.3 Encryption** - Automatic SSL certificates via Let's Encrypt
@@ -94,7 +94,7 @@ Internet
     ↓
 Cloudflare CDN/WAF (Layer 1)
     ↓
-Traefik Reverse Proxy (Layer 2)
+Caddy Reverse Proxy (Layer 2)
     ↓
 CrowdSec IDS/IPS (Layer 3)
     ↓
@@ -105,7 +105,7 @@ Authelia SSO + 2FA (Layer 4)
 │   (HTTPS + Auth)           │   (Tailscale Only)          │
 ├────────────────────────────┼─────────────────────────────┤
 │ • Grafana (Monitoring)     │ • Jellyfin (Media Server)   │
-│ • Traefik Dashboard        │ • Sonarr, Radarr (TV/Movies)│
+│ • Caddy Admin (if enabled)  │ • Sonarr, Radarr (TV/Movies)│
 │ • Gotify (Notifications)   │ • Prowlarr (Indexers)       │
 │ • Status Page              │ • qBittorrent (Downloads)   │
 │                            │ • Portainer (Management)    │
@@ -179,13 +179,13 @@ Authelia SSO + 2FA (Layer 4)
 
 ## 📦 Services
 
-### Services Exposed Through Traefik (Protected by Authelia)
+### Services Exposed Through Caddy (Protected by Authelia)
 
-These services are accessible via HTTPS through Traefik reverse proxy and protected by Authelia SSO:
+These services are accessible via HTTPS through Caddy reverse proxy and protected by Authelia SSO:
 
 | Service           | URL                           | Purpose                  | Authentication     |
 | ----------------- | ----------------------------- | ------------------------ | ------------------ |
-| Traefik Dashboard | `https://traefik.rodneyops.com` | Reverse proxy monitoring | 2FA (Admins only)  |
+| Caddy Admin       | `https://caddy.rodneyops.com`   | Reverse proxy monitoring | 2FA (Admins only)  |
 | Authelia          | `https://auth.rodneyops.com`    | SSO authentication       | Password + 2FA     |
 | Grafana           | `https://grafana.rodneyops.com` | Metrics & dashboards     | 2FA                |
 | Uptime Kuma       | `https://status.rodneyops.com`  | Service status page      | 2FA                |
@@ -197,7 +197,7 @@ These services are accessible via HTTPS through Traefik reverse proxy and protec
 
 ### Services on Tailscale Only (Not in Authelia Config)
 
-These services are only accessible via Tailscale VPN and are not exposed through Traefik:
+These services are only accessible via Tailscale VPN and are not exposed through Caddy:
 
 | Service     | Tailscale URL                          | Purpose              |
 | ----------- | -------------------------------------- | -------------------- |
@@ -265,11 +265,10 @@ TAILSCALE_AUTH_KEY=tskey-auth-xxxxx
 
 See [`.env.example`](.env.example) for complete list.
 
-### Traefik Configuration
+### Caddy Configuration
 
-- Static config: [`config/traefik/traefik.yml`](config/traefik/traefik.yml)
-- Dynamic config: [`config/traefik/dynamic/`](config/traefik/dynamic/)
-- Middlewares: [`config/traefik/dynamic/middlewares.yml`](config/traefik/dynamic/middlewares.yml)
+- Caddyfile: [`Caddyfile`](Caddyfile)
+- See [Caddy Migration Guide](docs/CADDY_MIGRATION.md) for details
 
 ### Authelia Configuration
 
@@ -290,7 +289,7 @@ docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --
 Generate bouncer API key:
 
 ```bash
-docker exec crowdsec cscli bouncers add traefik-bouncer
+docker exec crowdsec cscli bouncers add caddy-bouncer
 ```
 
 ### Hetzner Storage Box
@@ -391,7 +390,7 @@ See [Storage Box Setup Guide](docs/STORAGE_BOX.md) for detailed configuration.
 3. **Cloudflare API Token:**
    - Create token at https://dash.cloudflare.com/profile/api-tokens
    - Permissions: Zone DNS Edit, Zone Read
-   - Save to: `config/traefik/cf_api_token.txt` (chmod 600)
+   - Save to: `config/caddy/cf-token` (chmod 600)
 
 ### Deployment Methods
 
@@ -477,7 +476,7 @@ make ansible-deploy
 - Infrastructure as Code (IaC)
 - Idempotent deployments
 - Config file management
-- Works with existing Traefik/Tailscale setup
+- Works with existing Caddy/Tailscale setup
 - No conflicts with docker-compose
 - Easy rollback and verification
 
@@ -546,7 +545,7 @@ The CI/CD pipeline automatically:
 
 - **Grafana**: https://grafana.rodneyops.com
 - **Prometheus**: http://localhost:9090 (internal)
-- **Traefik**: https://traefik.rodneyops.com
+- **Caddy**: https://caddy.rodneyops.com (if admin enabled)
 
 ### Grafana Dashboards
 
@@ -554,7 +553,7 @@ Pre-configured dashboards:
 
 1. **Infrastructure Overview** - All services, resource usage
 2. **Security Dashboard** - CrowdSec stats, Fail2ban, blocked IPs
-3. **Traefik Dashboard** - Traffic patterns, response times
+3. **Caddy Metrics** - Request patterns, response times (if enabled)
 4. **Media Stack** - Jellyfin, \*arr services health
 
 ### Alerts
@@ -575,7 +574,7 @@ Alerts are sent to Gotify.
 ### Defense-in-Depth (6 Layers)
 
 1. **Cloudflare** - DDoS protection, WAF, rate limiting, bot management
-2. **Traefik** - TLS 1.3, security headers, rate limiting, request validation
+2. **Caddy** - TLS 1.3, security headers, automatic HTTPS, request validation
 3. **CrowdSec** - IDS/IPS, threat intelligence, automatic IP blocking
 4. **Authelia** - SSO, 2FA (TOTP), session management, access control
 5. **Fail2ban** - SSH protection, auth failure blocking, system hardening
@@ -684,26 +683,26 @@ logging:
 #### View Logs via Docker CLI
 
 ```bash
-# View Traefik logs (last 100 lines)
-docker logs traefik --tail 100
+# View Caddy logs (last 100 lines)
+docker logs caddy --tail 100
 
-# Follow Traefik logs in real-time
-docker logs traefik -f
+# Follow Caddy logs in real-time
+docker logs caddy -f
 
 # View logs with timestamps
-docker logs traefik -t
+docker logs caddy -t
 
 # View logs from last 10 minutes
-docker logs traefik --since 10m
+docker logs caddy --since 10m
 
 # View logs between timestamps
-docker logs traefik --since 2024-01-08T06:00:00 --until 2024-01-08T07:00:00
+docker logs caddy --since 2024-01-08T06:00:00 --until 2024-01-08T07:00:00
 
 # View all service logs
 docker compose logs
 
 # View specific service logs
-docker compose logs traefik
+docker compose logs caddy
 docker compose logs authelia
 docker compose logs crowdsec
 ```
@@ -715,20 +714,20 @@ docker compose logs crowdsec
 3. **Select Loki** as data source
 4. **Query logs**:
    ```
-   # All Traefik logs
-   {container="traefik"}
-   
-   # Traefik error logs
-   {container="traefik"} |= "error"
-   
-   # Traefik access logs (JSON format)
-   {container="traefik"} | json
+   # All Caddy logs
+   {container="caddy"}
+
+   # Caddy error logs
+   {container="caddy"} |= "error"
+
+   # Caddy access logs (JSON format)
+   {container="caddy"} | json
    
    # All service logs
    {job="containers"}
    
    # Filter by log level
-   {container="traefik"} | json | level="error"
+   {container="caddy"} | json | level="error"
    ```
 
 #### View Logs via Promtail (if running locally)
@@ -748,11 +747,11 @@ curl http://localhost:9080/metrics
 # Docker container logs location
 /var/lib/docker/containers/<container-id>/<container-id>-json.log
 
-# Find Traefik container log file
-docker inspect traefik | grep LogPath
+# Find Caddy container log file
+docker inspect caddy | grep LogPath
 
 # View log file directly (if needed)
-sudo tail -f /var/lib/docker/containers/$(docker inspect -f '{{.Id}}' traefik)/$(docker inspect -f '{{.Id}}' traefik)-json.log
+sudo tail -f /var/lib/docker/containers/$(docker inspect -f '{{.Id}}' caddy)/$(docker inspect -f '{{.Id}}' caddy)-json.log
 ```
 
 **System Logs** (for CrowdSec/Fail2ban):
@@ -802,14 +801,14 @@ Docker automatically handles log rotation based on the configuration:
 docker logs traefik --tail 10
 
 # Check Docker log driver
-docker inspect traefik | grep -A 10 LogConfig
+docker inspect caddy | grep -A 10 LogConfig
 
 # Check log file size
-docker inspect traefik | grep LogPath
-sudo ls -lh $(docker inspect -f '{{.LogPath}}' traefik)
+docker inspect caddy | grep LogPath
+sudo ls -lh $(docker inspect -f '{{.LogPath}}' caddy)
 
 # Check Promtail is collecting logs
-docker logs promtail --tail 50 | grep traefik
+docker logs promtail --tail 50 | grep caddy
 
 # Check Loki is receiving logs
 curl http://localhost:3100/ready
@@ -889,10 +888,10 @@ make health
 chmod 600 config/traefik/acme.json
 
 # Check Cloudflare API token
-cat config/traefik/cf_api_token.txt
+cat config/caddy/cf-token
 
-# View Traefik logs
-make logs-traefik
+# View Caddy logs
+make logs-caddy
 ```
 
 ### CrowdSec Not Blocking
@@ -997,7 +996,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
-- [Traefik](https://traefik.io/) - Modern reverse proxy
+- [Caddy](https://caddyserver.com/) - Modern reverse proxy with automatic HTTPS
 - [CrowdSec](https://crowdsec.net/) - Collaborative security
 - [Authelia](https://www.authelia.com/) - SSO & 2FA
 - [Prometheus](https://prometheus.io/) - Monitoring system

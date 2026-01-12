@@ -81,7 +81,7 @@ ansible-playbook playbook.yml -v
    ```yaml
    vault_storage_box_password: "your-password"
    vault_crowdsec_enroll_key: "your-key"
-   vault_crowdsec_bouncer_key: "your-key"  # Generate with: docker exec crowdsec cscli bouncers add traefik-bouncer
+   vault_crowdsec_bouncer_key: "your-key"  # Generate with: docker exec crowdsec cscli bouncers add caddy-bouncer
    vault_grafana_admin_password: "your-password"
    vault_gotify_admin_password: "your-password"
    vault_tailscale_auth_key: "your-key"
@@ -98,7 +98,7 @@ ansible-playbook playbook.yml -v
 ```bash
 export STORAGE_BOX_PASSWORD="your-password"
 export CROWDSEC_ENROLL_KEY="your-key"
-export CROWDSEC_BOUNCER_KEY="your-key"  # Generate with: docker exec crowdsec cscli bouncers add traefik-bouncer
+export CROWDSEC_BOUNCER_KEY="your-key"  # Generate with: docker exec crowdsec cscli bouncers add caddy-bouncer
 export GRAFANA_ADMIN_PASSWORD="your-password"
 export GOTIFY_ADMIN_PASSWORD="your-password"
 export TS_AUTHKEY="your-key"
@@ -139,14 +139,14 @@ The GitHub Actions workflow uses this Ansible playbook for deployment. See `.git
 
 ## CrowdSec Bouncer Key Generation
 
-The CrowdSec bouncer API key for Traefik integration must be generated on the server after CrowdSec is running:
+The CrowdSec bouncer API key for Caddy integration must be generated on the server after CrowdSec is running:
 
 ```bash
 # SSH into the server
 ssh deploy@your-server
 
 # Generate the bouncer key
-docker exec crowdsec cscli bouncers add traefik-bouncer
+docker exec crowdsec cscli bouncers add caddy-bouncer
 
 # Or use the helper script (from the ansible directory)
 cd /opt/homelab
@@ -157,7 +157,7 @@ The generated key should be added to:
 - `ansible/vault.yml` as `vault_crowdsec_bouncer_key`
 - Or as environment variable `CROWDSEC_BOUNCER_KEY`
 
-**Note:** The bouncer key is different from the enroll key. The enroll key is used to register the CrowdSec instance with the Central API, while the bouncer key is used by Traefik to communicate with CrowdSec.
+**Note:** The bouncer key is different from the enroll key. The enroll key is used to register the CrowdSec instance with the Central API, while the bouncer key is used by Caddy to communicate with CrowdSec.
 
 ## Troubleshooting
 
