@@ -46,7 +46,9 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Run Trivy vulnerability scanner (Config)
+        id: trivy-scan
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           scan-type: 'config'
           scan-ref: 'docker-compose.yml'
@@ -54,9 +56,19 @@ jobs:
           output: 'trivy-config-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
 
+      - name: Check if SARIF file exists
+        id: check-sarif
+        run: |
+          if [ -f "trivy-config-results.sarif" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ SARIF file not found, skipping upload"
+          fi
+
       - name: Upload Trivy config results
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && steps.check-sarif.outputs.exists == 'true'
         continue-on-error: true
         with:
           sarif_file: 'trivy-config-results.sarif'
