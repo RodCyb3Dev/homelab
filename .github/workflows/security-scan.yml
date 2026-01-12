@@ -212,7 +212,7 @@ jobs:
           cat docker-bench-report.txt
 
       - name: Upload benchmark report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docker-bench-report
           path: docker-bench-report.txt
