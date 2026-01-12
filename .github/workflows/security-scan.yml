@@ -40,8 +40,10 @@ jobs:
       - name: Extract services from docker-compose
         id: services
         run: |
-          SERVICES=$(docker-compose config --services)
-          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          SERVICES=$(docker-compose config --services 2>/dev/null | tr '\n' ' ' || echo "")
+          echo "services<<EOF" >> $GITHUB_OUTPUT
+          echo "$SERVICES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Run Trivy vulnerability scanner (Config)
         uses: aquasecurity/trivy-action@master
@@ -53,8 +55,9 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: Upload Trivy config results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
+        continue-on-error: true
         with:
           sarif_file: 'trivy-config-results.sarif'
 
