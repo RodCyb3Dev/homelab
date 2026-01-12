@@ -21,7 +21,7 @@ The infrastructure implements 6 layers of security:
 ```
 Layer 1: Cloudflare CDN/WAF
     ↓
-Layer 2: Traefik Edge Security
+Layer 2: Caddy Edge Security
     ↓
 Layer 3: CrowdSec IDS/IPS
     ↓
@@ -251,7 +251,7 @@ password: "mySecretPassword123"
 
 | Network    | Subnet        | Purpose                  | Access             |
 | ---------- | ------------- | ------------------------ | ------------------ |
-| Public     | 172.20.0.0/24 | Internet-facing services | Internet → Traefik |
+| Public     | 172.20.0.0/24 | Internet-facing services | Internet → Caddy |
 | Private    | 172.21.0.0/24 | Internal services        | Tailscale only     |
 | Monitoring | 172.22.0.0/24 | Observability stack      | Internal only      |
 | Security   | 172.23.0.0/24 | Security services        | Internal only      |

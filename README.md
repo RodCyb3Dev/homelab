@@ -872,7 +872,7 @@ docker logs crowdsec --tail 100
 docker logs authelia --tail 100
 
 # Or use make commands (if available)
-make logs-traefik
+make logs-caddy
 make logs-crowdsec
 make logs-authelia
 
