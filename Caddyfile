@@ -108,15 +108,22 @@ status.rodneyops.com {
 }
 
 # Gotify - Protected by Authelia (1FA)
+# Note: Gotify has its own authentication system
+# Users must log in with Gotify credentials (GOTIFY_ADMIN_USER/GOTIFY_ADMIN_PASSWORD) after Authelia
 # WebSocket support, proxy headers, etc. are enabled by default in Caddy
-# API endpoints bypass Authelia, web UI requires authentication
 rodify.rodneyops.com {
     forward_auth authelia:9091 {
         uri /api/authz/forward-auth
         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
     }
 
-    reverse_proxy gotify:80
+    reverse_proxy gotify:80 {
+        # Forward original request headers for Gotify
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Real-IP {remote_host}
+    }
 
     header {
         Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
