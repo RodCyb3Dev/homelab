@@ -390,7 +390,7 @@ jobs:
           ANSIBLE_FILES: ${{ steps.stats.outputs.ansible_files }}
           CONFIG_DIRS: ${{ steps.stats.outputs.config_dirs }}
 
-      - name: Commit and push changes
+      - name: Commit and push README changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
@@ -404,3 +404,44 @@ jobs:
             git push
             echo "✅ Statistics updated and pushed"
           fi
+
+      - name: Push to GitHub Wiki
+        run: |
+          echo "📚 Pushing wiki pages to GitHub Wiki repository..."
+          
+          # Check if wiki repository exists
+          WIKI_REPO="https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
+          
+          # Clone wiki repository (create if doesn't exist)
+          if git clone "$WIKI_REPO" wiki-repo 2>/dev/null; then
+            echo "✅ Wiki repository found"
+          else
+            echo "⚠️ Wiki repository not found. Please enable GitHub Wiki in repository settings:"
+            echo "   Repository Settings → Features → Wikis → Enable"
+            echo "   Then create an initial page to initialize the wiki repository."
+            exit 0
+          fi
+          
+          cd wiki-repo
+          
+          # Copy wiki files
+          cp -r ../.wiki/* . || true
+          
+          # Configure git
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Commit and push
+          git add .
+          
+          if git diff --staged --quiet; then
+            echo "No changes to wiki pages"
+          else
+            git commit -m "📚 Auto-update wiki pages [skip ci]"
+            git push
+            echo "✅ Wiki pages updated and pushed"
+          fi
+          
+          cd ..
+          rm -rf wiki-repo
+        continue-on-error: true
